@@ -1,8 +1,8 @@
-# Musable 🎵
+# Musable
 
 A self-hosted personal music library with Spotify-like design and features. Stream your music collection anywhere with a beautiful, responsive web interface.
 
-![Musable Theme](https://via.placeholder.com/800x400/82AAF2/ffffff?text=Musable)
+**Have questions or suggestions?** Join our Discord community: https://discord.gg/A4ymNnQkP2
 
 ## Features
 
@@ -341,3 +341,16 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 - **Issues**: Report bugs and request features via GitHub Issues
 - **Documentation**: Check the `docs/` folder for detailed guides
 - **Community**: Join our Discord server for support and discussions
+
+## Donations
+
+If you find Musable useful and would like to support its development, you can donate using the following cryptocurrency addresses:
+
+- **Bitcoin (BTC)**: `bc1pxg5t5vh4nskpm4wncwund7x4ekxw2gzyecuxqc5k5pf9ssz5eg2sp30854`
+- **Ethereum (ETH)**: `0x3fF92905E8b973bCE6b951F9C5DDb0fD3E2ea256`
+- **USDT (TRC20)**: `TWXPW4gRLdhZhJca2aHDBV9D989DRKFLoY`
+- **USDT (ERC20)**: `0x3fF92905E8b973bCE6b951F9C5DDb0fD3E2ea256`
+- **USDT (BEP20)**: `0x3fF92905E8b973bCE6b951F9C5DDb0fD3E2ea256`
+- **Litecoin (LTC)**: `ltc1qr57r6e9437l69gtu885nzzrlhc4hfp9z8edml8`
+
+Your support is greatly appreciated!
