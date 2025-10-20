@@ -1,0 +1,20 @@
+import { Request, Response } from 'express';
+export declare const getAllSongs: (req: Request, res: Response, next: import("express").NextFunction) => void;
+export declare const getSong: (req: Request, res: Response, next: import("express").NextFunction) => void;
+export declare const getRandomSongs: (req: Request, res: Response, next: import("express").NextFunction) => void;
+export declare const getAllArtists: (req: Request, res: Response, next: import("express").NextFunction) => void;
+export declare const getArtist: (req: Request, res: Response, next: import("express").NextFunction) => void;
+export declare const getAllAlbums: (req: Request, res: Response, next: import("express").NextFunction) => void;
+export declare const getAlbum: (req: Request, res: Response, next: import("express").NextFunction) => void;
+export declare const getRecentAlbums: (req: Request, res: Response, next: import("express").NextFunction) => void;
+export declare const getGenres: (req: Request, res: Response, next: import("express").NextFunction) => void;
+export declare const getLibraryStats: (req: Request, res: Response, next: import("express").NextFunction) => void;
+export declare const startLibraryScan: (req: Request, res: Response, next: import("express").NextFunction) => void;
+export declare const getScanStatus: (req: Request, res: Response, next: import("express").NextFunction) => void;
+export declare const followAlbum: (req: Request, res: Response, next: import("express").NextFunction) => void;
+export declare const unfollowAlbum: (req: Request, res: Response, next: import("express").NextFunction) => void;
+export declare const toggleAlbumFollow: (req: Request, res: Response, next: import("express").NextFunction) => void;
+export declare const getFollowedAlbums: (req: Request, res: Response, next: import("express").NextFunction) => void;
+export declare const getAlbumsWithFollowStatus: (req: Request, res: Response, next: import("express").NextFunction) => void;
+export declare const getAlbumFollowStatus: (req: Request, res: Response, next: import("express").NextFunction) => void;
+//# sourceMappingURL=libraryController.d.ts.map

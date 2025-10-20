@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <link rel="icon" href="%PUBLIC_URL%/logo192.png" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#82AAF2" />
+    <meta name="description" content="Musable - Self-hosted personal music library with Spotify-like design" />
+    
+    <!-- Icons -->
+    <link rel="icon" href="%PUBLIC_URL%/logo192.png" />
+    <link rel="apple-touch-icon" href="%PUBLIC_URL%/logo192.png" />
+    <title>Musable - Your Music Library</title>
+    <script>
+      // Block React HMR WebSocket connections when accessing from production domains
+      if (window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
+        const originalWebSocket = window.WebSocket;
+        window.WebSocket = function(url, protocols) {
+          // Block HMR WebSocket connections (typically to :3000/ws)
+          if (typeof url === 'string' && (url.includes(':3000/ws') || url.includes('sockjs-node'))) {
+            // Return a mock WebSocket that fails immediately
+            const mockWs = {
+              readyState: WebSocket.CLOSED,
+              close: function() {},
+              send: function() {},
+              addEventListener: function() {},
+              removeEventListener: function() {}
+            };
+            setTimeout(() => {
+              if (mockWs.onerror) mockWs.onerror(new Error('Blocked HMR WebSocket'));
+            }, 0);
+            return mockWs;
+          }
+          // Allow all other WebSocket connections (including socket.io)
+          return new originalWebSocket(url, protocols);
+        };
+        // Preserve WebSocket constants
+        window.WebSocket.CONNECTING = originalWebSocket.CONNECTING;
+        window.WebSocket.OPEN = originalWebSocket.OPEN;
+        window.WebSocket.CLOSING = originalWebSocket.CLOSING;
+        window.WebSocket.CLOSED = originalWebSocket.CLOSED;
+      }
+    </script>
+  </head>
+  <body>
+    <noscript>You need to enable JavaScript to run this app.</noscript>
+    <div id="root"></div>
+  </body>
+</html>

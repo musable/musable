@@ -1,0 +1,25 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+const express_1 = require("express");
+const playlistController_1 = require("../controllers/playlistController");
+const auth_1 = require("../middleware/auth");
+const router = (0, express_1.Router)();
+router.post('/', auth_1.authenticateToken, playlistController_1.createPlaylist);
+router.get('/my', auth_1.authenticateToken, playlistController_1.getUserPlaylists);
+router.get('/public', playlistController_1.getPublicPlaylists);
+router.get('/all', auth_1.authenticateToken, playlistController_1.getAllPlaylists);
+router.get('/search', auth_1.optionalAuth, playlistController_1.searchPlaylists);
+router.get('/followed', auth_1.authenticateToken, playlistController_1.getFollowedPlaylists);
+router.get('/with-follow-status', auth_1.authenticateToken, playlistController_1.getPlaylistsWithFollowStatus);
+router.get('/:id', auth_1.optionalAuth, playlistController_1.getPlaylist);
+router.put('/:id', auth_1.authenticateToken, playlistController_1.updatePlaylist);
+router.delete('/:id', auth_1.authenticateToken, playlistController_1.deletePlaylist);
+router.post('/:id/songs', auth_1.authenticateToken, playlistController_1.addSongToPlaylist);
+router.delete('/:id/songs/:songId', auth_1.authenticateToken, playlistController_1.removeSongFromPlaylist);
+router.put('/:id/songs/reorder', auth_1.authenticateToken, playlistController_1.reorderPlaylistSongs);
+router.post('/:id/follow', auth_1.authenticateToken, playlistController_1.followPlaylist);
+router.delete('/:id/follow', auth_1.authenticateToken, playlistController_1.unfollowPlaylist);
+router.post('/:id/toggle-follow', auth_1.authenticateToken, playlistController_1.togglePlaylistFollow);
+router.get('/:id/follow-status', auth_1.authenticateToken, playlistController_1.getPlaylistFollowStatus);
+exports.default = router;
+//# sourceMappingURL=playlists.js.map

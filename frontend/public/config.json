@@ -1,0 +1,5 @@
+{
+  "BASE_URL": "https://musable.breadjs.nl",
+  "API_BASE_URL": "https://musable.breadjs.nl/api",
+  "WEBSOCKET_URL": "wss://musable.breadjs.nl"
+}

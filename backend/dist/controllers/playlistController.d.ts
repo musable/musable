@@ -1,0 +1,19 @@
+import { Request, Response } from 'express';
+export declare const createPlaylist: (req: Request, res: Response, next: import("express").NextFunction) => void;
+export declare const getUserPlaylists: (req: Request, res: Response, next: import("express").NextFunction) => void;
+export declare const getPublicPlaylists: (req: Request, res: Response, next: import("express").NextFunction) => void;
+export declare const getAllPlaylists: (req: Request, res: Response, next: import("express").NextFunction) => void;
+export declare const getPlaylist: (req: Request, res: Response, next: import("express").NextFunction) => void;
+export declare const updatePlaylist: (req: Request, res: Response, next: import("express").NextFunction) => void;
+export declare const deletePlaylist: (req: Request, res: Response, next: import("express").NextFunction) => void;
+export declare const addSongToPlaylist: (req: Request, res: Response, next: import("express").NextFunction) => void;
+export declare const removeSongFromPlaylist: (req: Request, res: Response, next: import("express").NextFunction) => void;
+export declare const reorderPlaylistSongs: (req: Request, res: Response, next: import("express").NextFunction) => void;
+export declare const searchPlaylists: (req: Request, res: Response, next: import("express").NextFunction) => void;
+export declare const followPlaylist: (req: Request, res: Response, next: import("express").NextFunction) => void;
+export declare const unfollowPlaylist: (req: Request, res: Response, next: import("express").NextFunction) => void;
+export declare const togglePlaylistFollow: (req: Request, res: Response, next: import("express").NextFunction) => void;
+export declare const getFollowedPlaylists: (req: Request, res: Response, next: import("express").NextFunction) => void;
+export declare const getPlaylistsWithFollowStatus: (req: Request, res: Response, next: import("express").NextFunction) => void;
+export declare const getPlaylistFollowStatus: (req: Request, res: Response, next: import("express").NextFunction) => void;
+//# sourceMappingURL=playlistController.d.ts.map

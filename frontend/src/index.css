@@ -1,0 +1,317 @@
+@import 'tailwindcss/base';
+@import 'tailwindcss/components';
+@import 'tailwindcss/utilities';
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  margin: 0;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+    sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  background-color: #0f0f0f;
+  color: #ffffff;
+  overflow-x: hidden;
+}
+
+code {
+  font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
+    monospace;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #1f1f1f;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #404040;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #505050;
+}
+
+/* Hide scrollbar for Firefox */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #404040 #1f1f1f;
+}
+
+/* Hide scrollbar utility */
+.scrollbar-hide {
+  -ms-overflow-style: none;  /* Internet Explorer 10+ */
+  scrollbar-width: none;  /* Firefox */
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;  /* Safari and Chrome */
+}
+
+/* Custom focus styles */
+.focus-visible:focus-visible {
+  @apply outline-none ring-2 ring-primary ring-offset-2 ring-offset-gray-900;
+}
+
+/* Gradient text */
+.gradient-text {
+  background: linear-gradient(135deg, #82AAF2, #6B91E8);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* Glass morphism effect */
+.glass {
+  backdrop-filter: blur(20px);
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* Music player seekbar */
+.seekbar {
+  background: linear-gradient(to right, #82AAF2 0%, #82AAF2 var(--progress, 0%), #404040 var(--progress, 0%), #404040 100%);
+}
+
+/* Volume slider */
+.volume-slider {
+  background: linear-gradient(to right, #82AAF2 0%, #82AAF2 var(--volume, 50%), #404040 var(--volume, 50%), #404040 100%);
+}
+
+/* Animation classes */
+.animate-spin-slow {
+  animation: spin 3s linear infinite;
+}
+
+.animate-bounce-gentle {
+  animation: bounce-gentle 2s infinite;
+}
+
+@keyframes bounce-gentle {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
+}
+
+/* Loading spinner */
+.loading-spinner {
+  border: 3px solid #1f1f1f;
+  border-top: 3px solid #82AAF2;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+/* Hover effects */
+.hover-lift {
+  transition: transform 0.2s ease-out;
+}
+
+.hover-lift:hover {
+  transform: translateY(-2px);
+}
+
+/* Context menu */
+.context-menu {
+  backdrop-filter: blur(20px);
+  background: rgba(30, 30, 30, 0.95);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
+}
+
+/* Toast notification customization */
+.toast-success {
+  background: linear-gradient(135deg, #10B981, #059669);
+  color: white;
+}
+
+.toast-error {
+  background: linear-gradient(135deg, #EF4444, #DC2626);
+  color: white;
+}
+
+.toast-loading {
+  background: linear-gradient(135deg, #82AAF2, #6B91E8);
+  color: white;
+}
+
+/* Responsive design helpers */
+@media (max-width: 640px) {
+  .mobile-bottom-padding {
+    padding-bottom: 120px;
+  }
+}
+
+/* Dark theme overrides */
+.dark {
+  color-scheme: dark;
+}
+
+/* Focus styles for accessibility */
+.focus-ring:focus {
+  @apply outline-none ring-2 ring-primary ring-offset-2 ring-offset-gray-900;
+}
+
+/* Sidebar scrollbar */
+.sidebar-scrollable::-webkit-scrollbar {
+  width: 8px;
+}
+
+.sidebar-scrollable::-webkit-scrollbar-track {
+  background: #1f1f1f;
+  border-radius: 4px;
+}
+
+.sidebar-scrollable::-webkit-scrollbar-thumb {
+  background: #4b5563;
+  border-radius: 4px;
+}
+
+.sidebar-scrollable::-webkit-scrollbar-thumb:hover {
+  background: #6b7280;
+}
+
+/* Custom input styles */
+.input-primary {
+  @apply bg-gray-800 border-gray-700 text-white placeholder-gray-400 focus:border-primary focus:ring-primary;
+}
+
+.input-primary:focus {
+  box-shadow: 0 0 0 1px #82AAF2;
+}
+
+/* Button styles */
+.btn-primary {
+  @apply bg-primary hover:bg-secondary text-white font-medium py-2 px-4 rounded-lg transition-colors duration-200;
+}
+
+.btn-secondary {
+  @apply bg-gray-700 hover:bg-gray-600 text-white font-medium py-2 px-4 rounded-lg transition-colors duration-200;
+}
+
+.btn-ghost {
+  @apply text-gray-300 hover:text-white hover:bg-gray-800 font-medium py-2 px-4 rounded-lg transition-all duration-200;
+}
+
+/* Card styles */
+.card {
+  @apply bg-gray-800 border border-gray-700 rounded-lg p-4;
+}
+
+.card-hover {
+  @apply hover:bg-gray-750 hover:border-gray-600 transition-all duration-200;
+}
+
+/* Fade-in animation for context menu */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* Prevent text selection on mobile to avoid interfering with touch interactions */
+@media (max-width: 768px) {
+  * {
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+    -webkit-touch-callout: none;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  /* Allow text selection for input fields and textareas */
+  input, textarea, [contenteditable="true"] {
+    -webkit-user-select: text;
+    -moz-user-select: text;
+    -ms-user-select: text;
+    user-select: text;
+  }
+}
+
+/* Vertical EQ slider styles - matching horizontal slider style */
+.eq-slider {
+  -webkit-appearance: slider-vertical;
+  width: 8px;
+  height: 160px;
+  background: #404040;
+  border-radius: 4px;
+  outline: none;
+  cursor: pointer;
+  transition: opacity 0.2s;
+}
+
+.eq-slider:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+.eq-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #82AAF2;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.eq-slider:not(:disabled)::-webkit-slider-thumb:hover {
+  background: #9bb8f5;
+}
+
+.eq-slider::-moz-range-thumb {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #82AAF2;
+  cursor: pointer;
+  border: none;
+  transition: background 0.2s;
+}
+
+.eq-slider:not(:disabled)::-moz-range-thumb:hover {
+  background: #9bb8f5;
+}
+
+/* Slider thumb styles */
+input[type="range"].slider-thumb::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #82AAF2;
+  cursor: pointer;
+}
+
+input[type="range"].slider-thumb::-moz-range-thumb {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #82AAF2;
+  cursor: pointer;
+  border: none;
+}

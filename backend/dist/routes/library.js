@@ -1,0 +1,26 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+const express_1 = require("express");
+const libraryController_1 = require("../controllers/libraryController");
+const auth_1 = require("../middleware/auth");
+const router = (0, express_1.Router)();
+router.get('/songs', libraryController_1.getAllSongs);
+router.get('/songs/random', libraryController_1.getRandomSongs);
+router.get('/songs/:id', libraryController_1.getSong);
+router.get('/artists', libraryController_1.getAllArtists);
+router.get('/artists/:id', libraryController_1.getArtist);
+router.get('/albums', libraryController_1.getAllAlbums);
+router.get('/albums/recent', libraryController_1.getRecentAlbums);
+router.get('/albums/followed', auth_1.authenticateToken, libraryController_1.getFollowedAlbums);
+router.get('/albums/with-follow-status', auth_1.authenticateToken, libraryController_1.getAlbumsWithFollowStatus);
+router.get('/albums/:id', libraryController_1.getAlbum);
+router.get('/genres', libraryController_1.getGenres);
+router.get('/stats', libraryController_1.getLibraryStats);
+router.post('/scan', auth_1.authenticateToken, auth_1.requireAdmin, libraryController_1.startLibraryScan);
+router.get('/scan/status', libraryController_1.getScanStatus);
+router.post('/albums/:id/follow', auth_1.authenticateToken, libraryController_1.followAlbum);
+router.delete('/albums/:id/follow', auth_1.authenticateToken, libraryController_1.unfollowAlbum);
+router.post('/albums/:id/toggle-follow', auth_1.authenticateToken, libraryController_1.toggleAlbumFollow);
+router.get('/albums/:id/follow-status', auth_1.authenticateToken, libraryController_1.getAlbumFollowStatus);
+exports.default = router;
+//# sourceMappingURL=library.js.map
