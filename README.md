@@ -153,6 +153,98 @@ npm start
 - Configure your music library paths in the admin panel
 - Start your library scan and enjoy your music!
 
+### Docker Deployment (Recommended)
+
+The easiest way to run Musable is using Docker. This method bundles both frontend and backend in a single container.
+
+**Prerequisites:**
+- Docker and Docker Compose installed
+- Your music library folder
+
+**Quick Start:**
+
+1. **Clone the repository**
+```bash
+git clone https://github.com/musable/musable
+cd musable
+```
+
+2. **Configure environment variables**
+```bash
+cp .env.docker.example .env.docker
+# Edit .env.docker with your settings (IMPORTANT: Change secrets and admin password!)
+```
+
+3. **Configure your music folders**
+
+Edit `.env.docker` to point to your music:
+
+```bash
+# Your existing music library (read-only)
+MUSIC_PATH=/path/to/your/existing/music
+
+# Folder for adding new music (read-write)
+MUSIC_UPLOAD_PATH=/path/to/new/music
+```
+
+**Two ways to add music:**
+- **Read-only library**: Point `MUSIC_PATH` to your existing music collection (safe, won't modify files)
+- **Upload folder**: Point `MUSIC_UPLOAD_PATH` to a folder where you can add new files while the container is running
+
+4. **Start Musable**
+```bash
+docker-compose up -d
+```
+
+5. **Access the application**
+- Open http://localhost:3001 in your browser
+- Login with your configured admin credentials (default: admin@admin.com / admin123)
+- The music library will be automatically scanned on first run
+
+6. **Add music while running**
+- Simply copy music files to your `MUSIC_UPLOAD_PATH` folder
+- Go to Admin Panel → Library Management → Start Library Scan
+- New files will be detected and added to your library
+
+**Useful Docker Commands:**
+
+```bash
+# View logs
+docker-compose logs -f
+
+# Stop Musable
+docker-compose down
+
+# Restart Musable
+docker-compose restart
+
+# Update to latest version
+git pull
+docker-compose down
+docker-compose build --no-cache
+docker-compose up -d
+
+# Access container shell
+docker-compose exec musable sh
+```
+
+**Data Persistence:**
+
+Your data is stored in Docker volumes:
+- `musable_data` - Database and application data
+- `musable_uploads` - User uploaded files and artwork
+- `musable_yt_downloads` - Downloaded YouTube content
+
+**Environment Variables:**
+
+Key variables to configure in `.env.docker`:
+- `JWT_SECRET` - Secret for JWT tokens (CHANGE THIS!)
+- `SESSION_SECRET` - Secret for sessions (CHANGE THIS!)
+- `ADMIN_EMAIL` - Initial admin email
+- `ADMIN_PASSWORD` - Initial admin password (CHANGE THIS!)
+- `MUSIC_PATH` - Path to your music folder on host system
+- `YOUTUBE_API_KEY` - (Optional) For YouTube integration
+
 ## Configuration
 
 ### Frontend Configuration

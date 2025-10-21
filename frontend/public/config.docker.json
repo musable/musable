@@ -1,0 +1,5 @@
+{
+  "BASE_URL": "/",
+  "API_BASE_URL": "/api",
+  "WEBSOCKET_URL": "ws://localhost:3001"
+}

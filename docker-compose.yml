@@ -1,0 +1,86 @@
+services:
+  musable:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: musable
+    restart: unless-stopped
+    ports:
+      - "3001:3001"
+    environment:
+      # Server Configuration
+      - PORT=3001
+      - NODE_ENV=production
+
+      # Database
+      - DATABASE_PATH=/app/data/musable.db
+
+      # JWT Secret (CHANGE THIS!)
+      - JWT_SECRET=${JWT_SECRET:-change-this-super-secret-jwt-key-in-production}
+      - JWT_EXPIRES_IN=7d
+
+      # Session Secret (CHANGE THIS!)
+      - SESSION_SECRET=${SESSION_SECRET:-change-this-super-secret-session-key-in-production}
+
+      # File Upload Settings
+      - MAX_FILE_SIZE=104857600
+      - UPLOAD_PATH=/app/uploads
+
+      # Library Settings
+      # Scan both the read-only music library and the upload folder
+      - LIBRARY_PATHS=["/music","/music-uploads"]
+      - SUPPORTED_FORMATS=["mp3","flac","wav","m4a","aac","ogg"]
+
+      # YouTube Integration
+      - YOUTUBE_ENABLED=true
+      - YOUTUBE_DOWNLOAD_PATH=/app/yt-downloads
+      - YOUTUBE_API_KEY=${YOUTUBE_API_KEY:-}
+
+      # Admin Settings (CHANGE THESE!)
+      - ADMIN_EMAIL=${ADMIN_EMAIL:-admin@admin.com}
+      - ADMIN_PASSWORD=${ADMIN_PASSWORD:-admin123}
+
+      # Rate Limiting
+      - RATE_LIMIT_WINDOW_MS=900000
+      - RATE_LIMIT_MAX_REQUESTS=100
+
+      # CORS Settings
+      - CORS_ORIGIN=*
+
+      # Logging
+      - LOG_LEVEL=info
+
+    volumes:
+      # Mount your existing music library (read-only for safety)
+      # Change the path before the colon to your music folder
+      # Example (Windows): C:\Users\YourName\Music:/music:ro
+      # Example (Linux/Mac): /home/user/Music:/music:ro
+      - ${MUSIC_PATH:-./music}:/music:ro
+
+      # Mount a folder where you can add NEW music files
+      # Files added here will be auto-detected and scanned
+      # This folder is read-write so Musable can also download YouTube music here
+      - ${MUSIC_UPLOAD_PATH:-./music-uploads}:/music-uploads
+
+      # Mount config file so it can be edited on the fly
+      - ./frontend/public/config.docker.json:/app/public/config.json:ro
+
+      # Persistent data storage
+      - musable_data:/app/data
+      - musable_uploads:/app/uploads
+      - musable_yt_downloads:/app/yt-downloads
+
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3001/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+volumes:
+  musable_data:
+    driver: local
+  musable_uploads:
+    driver: local
+  musable_yt_downloads:
+    driver: local
