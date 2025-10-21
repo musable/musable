@@ -375,12 +375,7 @@ class YTMusicService {
 
       let artist = await ArtistModel.findByName(artistName);
       if (!artist) {
-        const artistData = {
-          name: artistName,
-          bio: null,
-          image_path: null
-        };
-        artist = await ArtistModel.create(artistData);
+        artist = await ArtistModel.create(artistName);
       }
 
       // Create or get album - always create an album for YouTube songs to display artwork

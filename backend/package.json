@@ -4,7 +4,7 @@
   "description": "Musable - Self-hosted personal music library backend",
   "main": "dist/app.js",
   "scripts": {
-    "build": "tsc",
+    "build": "tsc && cp -r src/models/schemas dist/models/",
     "start": "node dist/app.js",
     "dev": "ts-node-dev --respawn --transpile-only src/app.ts",
     "test": "jest",

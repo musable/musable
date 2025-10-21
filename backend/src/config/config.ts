@@ -39,7 +39,7 @@ const config: Config = {
   youtubeEnabled: process.env.YOUTUBE_ENABLED === 'true',
   youtubeDownloadPath: process.env.YOUTUBE_DOWNLOAD_PATH || './downloads',
   youtubeApiKey: process.env.YOUTUBE_API_KEY,
-  adminEmail: process.env.ADMIN_EMAIL || 'admin@musable.local',
+  adminEmail: process.env.ADMIN_EMAIL || 'admin@admin.com',
   adminPassword: process.env.ADMIN_PASSWORD || 'admin123',
   rateLimitWindowMs: parseInt(process.env.RATE_LIMIT_WINDOW_MS || '60000', 10),
   rateLimitMaxRequests: parseInt(process.env.RATE_LIMIT_MAX_REQUESTS || '10000', 10),

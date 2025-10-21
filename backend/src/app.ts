@@ -149,21 +149,37 @@ app.get('/health', (req, res) => {
   });
 });
 
-app.get('/', (req, res) => {
-  res.json({ 
-    message: 'Musable API Server',
-    version: '1.0.0',
-    endpoints: {
-      health: '/health',
-      auth: '/api/auth',
-      library: '/api/library',
-      playlists: '/api/playlists',
-      history: '/api/history',
-      admin: '/api/admin',
-      favorites: '/api/favorites'
+// Serve frontend static files in production (Docker)
+const publicPath = path.join(__dirname, '..', 'public');
+if (fs.existsSync(publicPath)) {
+  app.use(express.static(publicPath));
+
+  // Serve index.html for all non-API routes (SPA support)
+  app.get('*', (req, res, next) => {
+    // Skip API routes and health check
+    if (req.path.startsWith('/api') || req.path === '/health' || req.path.startsWith('/uploads')) {
+      return next();
     }
+    res.sendFile(path.join(publicPath, 'index.html'));
   });
-});
+} else {
+  // Development mode - show API info
+  app.get('/', (req, res) => {
+    res.json({
+      message: 'Musable API Server',
+      version: '1.0.0',
+      endpoints: {
+        health: '/health',
+        auth: '/api/auth',
+        library: '/api/library',
+        playlists: '/api/playlists',
+        history: '/api/history',
+        admin: '/api/admin',
+        favorites: '/api/favorites'
+      }
+    });
+  });
+}
 
 app.use(errorHandler);
 
