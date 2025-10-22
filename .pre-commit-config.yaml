@@ -31,7 +31,7 @@ repos:
       # format ui changes
       - id: prettier-format-ui
         name: prettier (ui changes)
-        entry: bash -lc 'files=("$@"); npx --yes prettier --write "${files[@]}"'
+        entry: bash -c 'files=("$@"); npx --yes prettier --write "${files[@]}"'
         language: system
         types: [file]
         files: ^(frontend|backend)/src/.*\.(html|htm)$
