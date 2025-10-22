@@ -1,0 +1,56 @@
+fail_fast: true
+default_install_hook_types: [pre-commit, pre-push]
+
+repos:
+  # General hooks
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v6.0.0
+    hooks:
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+      - id: check-yaml
+      - id: check-json
+      - id: check-merge-conflict
+      - id: check-added-large-files
+        args: ['--maxkb=5000']
+      - id: check-case-conflict
+      - id: check-merge-conflict
+      - id: mixed-line-ending
+        args: ['--fix=lf']
+
+  # format, organise imports, lint, and apply safe fixes
+  - repo: http://github.com/biomejs/pre-commit
+    rev: v0.6.1
+    hooks:
+      - id: biome-check
+        additional_dependencies:
+          - "@biomejs/biome@^2.2.6"
+
+  - repo: local
+    hooks:
+      # format ui changes
+      - id: prettier-format-ui
+        name: prettier (ui changes)
+        entry: bash -lc 'files=("$@"); npx --yes prettier --write "${files[@]}"'
+        language: system
+        types: [file]
+        files: ^(frontend|backend)/src/.*\.(html|htm)$
+        pass_filenames: true
+
+      # execute tests for frontend and backend
+      - id: jest-frontend
+        name: jest (frontend)
+        entry: bash -c 'cd frontend && npx --yes jest --passWithNoTests --maxWorkers=$(nproc) --silent --noStackTrace'
+        language: system
+        types: [file]
+        pass_filenames: false
+        always_run: true
+        stages: [pre-push]
+      - id: jest-backend
+        name: jest (backend)
+        entry: bash -c 'cd backend && npx --yes jest --passWithNoTests --maxWorkers=$(nproc) --silent --noStackTrace'
+        language: system
+        types: [file]
+        pass_filenames: false
+        always_run: true
+        stages: [pre-push]
