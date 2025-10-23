@@ -1,16 +1,16 @@
 import { Router } from 'express';
 import {
-  login,
-  register,
-  getProfile,
   changePassword,
+  deleteProfilePicture,
+  getProfile,
+  login,
   logout,
-  validateInvite,
-  upload,
+  register,
   updateProfilePicture,
-  deleteProfilePicture
-} from '../controllers/authController';
-import { authenticateToken } from '../middleware/auth';
+  upload,
+  validateInvite,
+} from '../controllers/authController.js';
+import { authenticateToken } from '../middleware/auth.js';
 
 const router = Router();
 
@@ -27,7 +27,12 @@ router.post('/logout', authenticateToken, logout);
 router.get('/invite/:token', validateInvite);
 
 // Profile picture routes
-router.put('/profile-picture', authenticateToken, upload.single('profilePicture'), updateProfilePicture);
+router.put(
+  '/profile-picture',
+  authenticateToken,
+  upload.single('profilePicture'),
+  updateProfilePicture,
+);
 
 router.delete('/profile-picture', authenticateToken, deleteProfilePicture);
 

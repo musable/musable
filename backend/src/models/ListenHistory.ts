@@ -1,4 +1,4 @@
-import Database from '../config/database';
+import Database from '../config/database.js';
 
 export interface ListenHistory {
   id: number;
@@ -31,7 +31,12 @@ export class ListenHistoryModel {
   async create(data: CreateListenHistoryData): Promise<ListenHistory> {
     const result = await this.db.run(
       'INSERT INTO listen_history (user_id, song_id, duration_played, completed) VALUES (?, ?, ?, ?)',
-      [data.user_id, data.song_id, data.duration_played || null, data.completed || false]
+      [
+        data.user_id,
+        data.song_id,
+        data.duration_played || null,
+        data.completed || false,
+      ],
     );
 
     const history = await this.findById(result.lastID!);
@@ -45,13 +50,17 @@ export class ListenHistoryModel {
   async findById(id: number): Promise<ListenHistory | null> {
     return await this.db.get<ListenHistory>(
       'SELECT * FROM listen_history WHERE id = ?',
-      [id]
+      [id],
     );
   }
 
-  async getUserHistory(userId: number, limit: number = 50, offset: number = 0): Promise<ListenHistoryWithDetails[]> {
+  async getUserHistory(
+    userId: number,
+    limit: number = 50,
+    offset: number = 0,
+  ): Promise<ListenHistoryWithDetails[]> {
     return await this.db.query<ListenHistoryWithDetails>(
-      `SELECT 
+      `SELECT
         lh.*,
         u.username,
         s.title as song_title,
@@ -67,13 +76,16 @@ export class ListenHistoryModel {
        WHERE lh.user_id = ?
        ORDER BY lh.played_at DESC
        LIMIT ? OFFSET ?`,
-      [userId, limit, offset]
+      [userId, limit, offset],
     );
   }
 
-  async getAllHistory(limit: number = 100, offset: number = 0): Promise<ListenHistoryWithDetails[]> {
+  async getAllHistory(
+    limit: number = 100,
+    offset: number = 0,
+  ): Promise<ListenHistoryWithDetails[]> {
     return await this.db.query<ListenHistoryWithDetails>(
-      `SELECT 
+      `SELECT
         lh.*,
         u.username,
         s.title as song_title,
@@ -88,11 +100,14 @@ export class ListenHistoryModel {
        LEFT JOIN albums al ON s.album_id = al.id
        ORDER BY lh.played_at DESC
        LIMIT ? OFFSET ?`,
-      [limit, offset]
+      [limit, offset],
     );
   }
 
-  async getRecentlyPlayedSongs(userId: number, limit: number = 20): Promise<ListenHistoryWithDetails[]> {
+  async getRecentlyPlayedSongs(
+    userId: number,
+    limit: number = 20,
+  ): Promise<ListenHistoryWithDetails[]> {
     return await this.db.query<ListenHistoryWithDetails>(
       `SELECT DISTINCT
         lh.*,
@@ -111,14 +126,17 @@ export class ListenHistoryModel {
        GROUP BY lh.song_id
        ORDER BY MAX(lh.played_at) DESC
        LIMIT ?`,
-      [userId, limit]
+      [userId, limit],
     );
   }
 
-  async getMostPlayedSongs(userId?: number, limit: number = 20): Promise<any[]> {
+  async getMostPlayedSongs(
+    userId?: number,
+    limit: number = 20,
+  ): Promise<any[]> {
     if (userId) {
       return await this.db.query(
-        `SELECT 
+        `SELECT
           s.id,
           s.title,
           a.name as artist_name,
@@ -133,11 +151,11 @@ export class ListenHistoryModel {
          GROUP BY s.id
          ORDER BY play_count DESC
          LIMIT ?`,
-        [userId, limit]
+        [userId, limit],
       );
     } else {
       return await this.db.query(
-        `SELECT 
+        `SELECT
           s.id,
           s.title,
           a.name as artist_name,
@@ -151,7 +169,7 @@ export class ListenHistoryModel {
          GROUP BY s.id
          ORDER BY play_count DESC
          LIMIT ?`,
-        [limit]
+        [limit],
       );
     }
   }
@@ -159,7 +177,7 @@ export class ListenHistoryModel {
   async getListeningStats(userId?: number): Promise<any> {
     if (userId) {
       const stats = await this.db.get(
-        `SELECT 
+        `SELECT
           COUNT(*) as total_plays,
           COUNT(DISTINCT song_id) as unique_songs,
           COUNT(DISTINCT DATE(played_at)) as listening_days,
@@ -167,19 +185,19 @@ export class ListenHistoryModel {
           SUM(duration_played) as total_listening_time
          FROM listen_history
          WHERE user_id = ?`,
-        [userId]
+        [userId],
       );
       return stats;
     } else {
       const stats = await this.db.get(
-        `SELECT 
+        `SELECT
           COUNT(*) as total_plays,
           COUNT(DISTINCT song_id) as unique_songs,
           COUNT(DISTINCT user_id) as active_users,
           COUNT(DISTINCT DATE(played_at)) as listening_days,
           SUM(CASE WHEN completed = 1 THEN 1 ELSE 0 END) as completed_plays,
           SUM(duration_played) as total_listening_time
-         FROM listen_history`
+         FROM listen_history`,
       );
       return stats;
     }
@@ -188,21 +206,21 @@ export class ListenHistoryModel {
   async getListeningTrends(userId?: number, days: number = 30): Promise<any[]> {
     if (userId) {
       return await this.db.query(
-        `SELECT 
+        `SELECT
           DATE(played_at) as date,
           COUNT(*) as plays,
           COUNT(DISTINCT song_id) as unique_songs,
           SUM(duration_played) as total_time
          FROM listen_history
-         WHERE user_id = ? 
+         WHERE user_id = ?
            AND played_at >= datetime('now', '-${days} days')
          GROUP BY DATE(played_at)
          ORDER BY date DESC`,
-        [userId]
+        [userId],
       );
     } else {
       return await this.db.query(
-        `SELECT 
+        `SELECT
           DATE(played_at) as date,
           COUNT(*) as plays,
           COUNT(DISTINCT song_id) as unique_songs,
@@ -211,14 +229,14 @@ export class ListenHistoryModel {
          FROM listen_history
          WHERE played_at >= datetime('now', '-${days} days')
          GROUP BY DATE(played_at)
-         ORDER BY date DESC`
+         ORDER BY date DESC`,
       );
     }
   }
 
   async getUserTopArtists(userId: number, limit: number = 10): Promise<any[]> {
     return await this.db.query(
-      `SELECT 
+      `SELECT
         a.id,
         a.name,
         COUNT(*) as play_count,
@@ -230,13 +248,13 @@ export class ListenHistoryModel {
        GROUP BY a.id
        ORDER BY play_count DESC
        LIMIT ?`,
-      [userId, limit]
+      [userId, limit],
     );
   }
 
   async getUserTopAlbums(userId: number, limit: number = 10): Promise<any[]> {
     return await this.db.query(
-      `SELECT 
+      `SELECT
         al.id,
         al.title,
         a.name as artist_name,
@@ -250,23 +268,23 @@ export class ListenHistoryModel {
        GROUP BY al.id
        ORDER BY play_count DESC
        LIMIT ?`,
-      [userId, limit]
+      [userId, limit],
     );
   }
 
   async deleteUserHistory(userId: number): Promise<number> {
     const result = await this.db.run(
       'DELETE FROM listen_history WHERE user_id = ?',
-      [userId]
+      [userId],
     );
     return result.changes || 0;
   }
 
   async deleteOldHistory(days: number = 365): Promise<number> {
     const result = await this.db.run(
-      `DELETE FROM listen_history 
+      `DELETE FROM listen_history
        WHERE played_at < datetime('now', '-${days} days')`,
-      []
+      [],
     );
     return result.changes || 0;
   }
@@ -274,25 +292,25 @@ export class ListenHistoryModel {
   async getMonthlyTrends(): Promise<any> {
     // Get current month stats
     const currentMonth = await this.db.get(
-      `SELECT 
+      `SELECT
         COUNT(*) as total_plays,
         COUNT(DISTINCT song_id) as unique_songs,
         COUNT(DISTINCT user_id) as active_users,
         SUM(duration_played) as total_listening_time
        FROM listen_history
-       WHERE played_at >= datetime('now', 'start of month')`
+       WHERE played_at >= datetime('now', 'start of month')`,
     );
 
     // Get previous month stats
     const previousMonth = await this.db.get(
-      `SELECT 
+      `SELECT
         COUNT(*) as total_plays,
         COUNT(DISTINCT song_id) as unique_songs,
         COUNT(DISTINCT user_id) as active_users,
         SUM(duration_played) as total_listening_time
        FROM listen_history
        WHERE played_at >= datetime('now', 'start of month', '-1 month')
-         AND played_at < datetime('now', 'start of month')`
+         AND played_at < datetime('now', 'start of month')`,
     );
 
     // Calculate percentage changes
@@ -305,23 +323,35 @@ export class ListenHistoryModel {
       total_plays: {
         current: currentMonth.total_plays || 0,
         previous: previousMonth.total_plays || 0,
-        change: calculatePercentageChange(currentMonth.total_plays || 0, previousMonth.total_plays || 0)
+        change: calculatePercentageChange(
+          currentMonth.total_plays || 0,
+          previousMonth.total_plays || 0,
+        ),
       },
       unique_songs: {
         current: currentMonth.unique_songs || 0,
         previous: previousMonth.unique_songs || 0,
-        change: calculatePercentageChange(currentMonth.unique_songs || 0, previousMonth.unique_songs || 0)
+        change: calculatePercentageChange(
+          currentMonth.unique_songs || 0,
+          previousMonth.unique_songs || 0,
+        ),
       },
       active_users: {
         current: currentMonth.active_users || 0,
         previous: previousMonth.active_users || 0,
-        change: calculatePercentageChange(currentMonth.active_users || 0, previousMonth.active_users || 0)
+        change: calculatePercentageChange(
+          currentMonth.active_users || 0,
+          previousMonth.active_users || 0,
+        ),
       },
       total_listening_time: {
         current: currentMonth.total_listening_time || 0,
         previous: previousMonth.total_listening_time || 0,
-        change: calculatePercentageChange(currentMonth.total_listening_time || 0, previousMonth.total_listening_time || 0)
-      }
+        change: calculatePercentageChange(
+          currentMonth.total_listening_time || 0,
+          previousMonth.total_listening_time || 0,
+        ),
+      },
     };
   }
 
@@ -330,7 +360,7 @@ export class ListenHistoryModel {
     const currentMonth = await this.db.get(
       `SELECT COUNT(DISTINCT user_id) as active_users
        FROM listen_history
-       WHERE played_at >= datetime('now', 'start of month')`
+       WHERE played_at >= datetime('now', 'start of month')`,
     );
 
     // Get previous month user count
@@ -338,7 +368,7 @@ export class ListenHistoryModel {
       `SELECT COUNT(DISTINCT user_id) as active_users
        FROM listen_history
        WHERE played_at >= datetime('now', 'start of month', '-1 month')
-         AND played_at < datetime('now', 'start of month')`
+         AND played_at < datetime('now', 'start of month')`,
     );
 
     const calculatePercentageChange = (current: number, previous: number) => {
@@ -349,7 +379,10 @@ export class ListenHistoryModel {
     return {
       current: currentMonth.active_users || 0,
       previous: previousMonth.active_users || 0,
-      change: calculatePercentageChange(currentMonth.active_users || 0, previousMonth.active_users || 0)
+      change: calculatePercentageChange(
+        currentMonth.active_users || 0,
+        previousMonth.active_users || 0,
+      ),
     };
   }
 
@@ -358,7 +391,7 @@ export class ListenHistoryModel {
     const currentMonth = await this.db.get(
       `SELECT COUNT(*) as new_songs
        FROM songs
-       WHERE created_at >= datetime('now', 'start of month')`
+       WHERE created_at >= datetime('now', 'start of month')`,
     );
 
     // Get previous month
@@ -366,7 +399,7 @@ export class ListenHistoryModel {
       `SELECT COUNT(*) as new_songs
        FROM songs
        WHERE created_at >= datetime('now', 'start of month', '-1 month')
-         AND created_at < datetime('now', 'start of month')`
+         AND created_at < datetime('now', 'start of month')`,
     );
 
     const calculatePercentageChange = (current: number, previous: number) => {
@@ -377,7 +410,10 @@ export class ListenHistoryModel {
     return {
       current: currentMonth.new_songs || 0,
       previous: previousMonth.new_songs || 0,
-      change: calculatePercentageChange(currentMonth.new_songs || 0, previousMonth.new_songs || 0)
+      change: calculatePercentageChange(
+        currentMonth.new_songs || 0,
+        previousMonth.new_songs || 0,
+      ),
     };
   }
 }

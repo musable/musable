@@ -1,13 +1,13 @@
-import ytdl from 'youtube-dl-exec';
-import path from 'path';
-import fs from 'fs/promises';
 import { exec, spawn } from 'child_process';
-import { promisify } from 'util';
-import sharp from 'sharp';
+import fs from 'fs/promises';
 import * as musicMetadata from 'music-metadata';
-import SongModel from '../models/Song';
-import ArtistModel from '../models/Artist';
-import AlbumModel from '../models/Album';
+import path from 'path';
+import sharp from 'sharp';
+import { promisify } from 'util';
+import ytdl from 'youtube-dl-exec';
+import AlbumModel from '../models/Album.js';
+import ArtistModel from '../models/Artist.js';
+import SongModel from '../models/Song.js';
 
 const execAsync = promisify(exec);
 
@@ -47,7 +47,9 @@ class YTMusicService {
   }
 
   async initialize() {
-    console.log('YTMusic service initialized (using yt-dlp) // v3: real-time progress tracking');
+    console.log(
+      'YTMusic service initialized (using yt-dlp) // v3: real-time progress tracking',
+    );
   }
 
   async searchMusic(query: string): Promise<YTMusicSearchResult[]> {
@@ -61,7 +63,10 @@ class YTMusicService {
       const { stdout } = await execAsync(command);
 
       // Parse the JSON objects (one per line)
-      const lines = stdout.trim().split('\n').filter(line => line.trim());
+      const lines = stdout
+        .trim()
+        .split('\n')
+        .filter((line) => line.trim());
       console.log(`🎵 YTMusic: Found ${lines.length} raw results from yt-dlp`);
 
       const ytMusicResults: YTMusicSearchResult[] = [];
@@ -75,26 +80,36 @@ class YTMusicService {
           const isAvailable = !!existingSong;
 
           if (!isAvailable) {
-            const artistName = result.uploader || result.channel || 'Unknown Artist';
+            const artistName =
+              result.uploader || result.channel || 'Unknown Artist';
             const title = result.title;
 
             // Skip if title matches artist name (likely a channel/artist page, not a song)
-            if (title.toLowerCase().trim() === artistName.toLowerCase().trim()) {
-              console.log(`🎵 YTMusic: Skipped "${title}" - title matches artist name (likely channel page)`);
+            if (
+              title.toLowerCase().trim() === artistName.toLowerCase().trim()
+            ) {
+              console.log(
+                `🎵 YTMusic: Skipped "${title}" - title matches artist name (likely channel page)`,
+              );
               continue;
             }
 
             // Skip if title is just the artist name (another indicator of channel pages)
-            if (title.toLowerCase().trim() === artistName.toLowerCase().trim()) {
-              console.log(`🎵 YTMusic: Skipped "${title}" - appears to be channel page`);
+            if (
+              title.toLowerCase().trim() === artistName.toLowerCase().trim()
+            ) {
+              console.log(
+                `🎵 YTMusic: Skipped "${title}" - appears to be channel page`,
+              );
               continue;
             }
 
             // Extract duration
             const durationSeconds = result.duration;
-            const formattedDuration = (durationSeconds && durationSeconds > 0)
-              ? this.formatDuration(Math.floor(durationSeconds))
-              : undefined;
+            const formattedDuration =
+              durationSeconds && durationSeconds > 0
+                ? this.formatDuration(Math.floor(durationSeconds))
+                : undefined;
 
             ytMusicResults.push({
               id: result.id,
@@ -104,18 +119,24 @@ class YTMusicService {
               duration: formattedDuration,
               thumbnail: result.thumbnails?.[0]?.url || '',
               isAvailableLocally: false,
-              source: 'youtube-music'
+              source: 'youtube-music',
             });
-            console.log(`🎵 YTMusic: Added "${result.title}" by "${artistName}" to results`);
+            console.log(
+              `🎵 YTMusic: Added "${result.title}" by "${artistName}" to results`,
+            );
           } else {
-            console.log(`🎵 YTMusic: Skipped "${result.title}" - already downloaded (youtube_id: ${result.id})`);
+            console.log(
+              `🎵 YTMusic: Skipped "${result.title}" - already downloaded (youtube_id: ${result.id})`,
+            );
           }
         } catch (parseError) {
           console.error('Error parsing yt-dlp result line:', parseError);
         }
       }
 
-      console.log(`🎵 YTMusic: Returning ${ytMusicResults.length} unique results`);
+      console.log(
+        `🎵 YTMusic: Returning ${ytMusicResults.length} unique results`,
+      );
       return ytMusicResults;
     } catch (error) {
       console.error('YTMusic search error:', error);
@@ -129,17 +150,17 @@ class YTMusicService {
     this.downloadProgress.set(downloadId, {
       id: downloadId,
       status: 'downloading',
-      progress: 0
+      progress: 0,
     });
 
     // Start download in background (don't await)
-    this.performDownload(videoId, downloadId).catch(error => {
+    this.performDownload(videoId, downloadId).catch((error) => {
       console.error('Background download error:', error);
       this.downloadProgress.set(downloadId, {
         id: downloadId,
         status: 'error',
         progress: 0,
-        error: error instanceof Error ? error.message : 'Download failed'
+        error: error instanceof Error ? error.message : 'Download failed',
       });
     });
 
@@ -147,7 +168,10 @@ class YTMusicService {
     return downloadId;
   }
 
-  private async performDownload(videoId: string, downloadId: string): Promise<void> {
+  private async performDownload(
+    videoId: string,
+    downloadId: string,
+  ): Promise<void> {
     try {
       console.log(`🎵 YTMusic: Starting download for video ID: ${videoId}`);
 
@@ -159,7 +183,7 @@ class YTMusicService {
       console.log(`🎵 YTMusic: Got song info:`, {
         title: songInfo.title,
         uploader: songInfo.uploader,
-        duration: songInfo.duration
+        duration: songInfo.duration,
       });
 
       // Clean up the title - remove artist name and common suffixes
@@ -188,7 +212,12 @@ class YTMusicService {
         extractedArtistName = songInfo.channel;
       }
 
-      if (extractedArtistName && cleanTitle.toLowerCase().startsWith(extractedArtistName.toLowerCase() + ' - ')) {
+      if (
+        extractedArtistName &&
+        cleanTitle
+          .toLowerCase()
+          .startsWith(extractedArtistName.toLowerCase() + ' - ')
+      ) {
         cleanTitle = cleanTitle.substring(extractedArtistName.length + 3);
       }
 
@@ -200,28 +229,37 @@ class YTMusicService {
       this.downloadProgress.set(downloadId, {
         id: downloadId,
         status: 'downloading',
-        progress: 0
+        progress: 0,
       });
 
-      console.log(`🎵 YTMusic: Starting download with real-time progress tracking...`);
+      console.log(
+        `🎵 YTMusic: Starting download with real-time progress tracking...`,
+      );
 
       // Download the audio using yt-dlp with progress tracking
       await new Promise<void>((resolve, reject) => {
-        const ytdlpProcess = spawn('yt-dlp', [
-          `https://www.youtube.com/watch?v=${videoId}`,
-          '-x',
-          '--audio-format', 'mp3',
-          '--audio-quality', '0',
-          '--embed-thumbnail',
-          '--embed-metadata',
-          '--add-metadata',
-          '-o', outputTemplate,
-          '--newline',  // Output progress on new lines for easier parsing
-          '--progress',  // Force progress output
-          '--no-warnings'
-        ], {
-          stdio: ['pipe', 'pipe', 'pipe']  // Ensure unbuffered I/O
-        });
+        const ytdlpProcess = spawn(
+          'yt-dlp',
+          [
+            `https://www.youtube.com/watch?v=${videoId}`,
+            '-x',
+            '--audio-format',
+            'mp3',
+            '--audio-quality',
+            '0',
+            '--embed-thumbnail',
+            '--embed-metadata',
+            '--add-metadata',
+            '-o',
+            outputTemplate,
+            '--newline', // Output progress on new lines for easier parsing
+            '--progress', // Force progress output
+            '--no-warnings',
+          ],
+          {
+            stdio: ['pipe', 'pipe', 'pipe'], // Ensure unbuffered I/O
+          },
+        );
 
         let lastProgress = 0;
 
@@ -234,23 +272,32 @@ class YTMusicService {
             if (progress > lastProgress) {
               lastProgress = progress;
               const cappedProgress = Math.min(progress, 95);
-              console.log(`📊 Progress update: ${progress}% -> setting to ${cappedProgress}% for downloadId: ${downloadId}`);
+              console.log(
+                `📊 Progress update: ${progress}% -> setting to ${cappedProgress}% for downloadId: ${downloadId}`,
+              );
               this.downloadProgress.set(downloadId, {
                 id: downloadId,
                 status: 'downloading',
-                progress: cappedProgress
+                progress: cappedProgress,
               });
-              console.log(`📊 Progress stored in map:`, this.downloadProgress.get(downloadId));
+              console.log(
+                `📊 Progress stored in map:`,
+                this.downloadProgress.get(downloadId),
+              );
             }
           }
 
           // Detect post-processing phase
-          if (output.includes('[ExtractAudio]') || output.includes('[EmbedThumbnail]') || output.includes('[Metadata]')) {
+          if (
+            output.includes('[ExtractAudio]') ||
+            output.includes('[EmbedThumbnail]') ||
+            output.includes('[Metadata]')
+          ) {
             console.log(`🔧 Post-processing detected, setting progress to 96%`);
             this.downloadProgress.set(downloadId, {
               id: downloadId,
               status: 'processing',
-              progress: 96
+              progress: 96,
             });
           }
         };
@@ -275,7 +322,7 @@ class YTMusicService {
             this.downloadProgress.set(downloadId, {
               id: downloadId,
               status: 'processing',
-              progress: 98
+              progress: 98,
             });
 
             resolve();
@@ -285,11 +332,13 @@ class YTMusicService {
             try {
               const stats = await fs.stat(finalPath);
               if (stats.size > 0) {
-                console.log(`🎵 YTMusic: File exists with size ${stats.size} bytes despite exit code ${code}, continuing...`);
+                console.log(
+                  `🎵 YTMusic: File exists with size ${stats.size} bytes despite exit code ${code}, continuing...`,
+                );
                 this.downloadProgress.set(downloadId, {
                   id: downloadId,
                   status: 'processing',
-                  progress: 98
+                  progress: 98,
                 });
                 resolve();
               } else {
@@ -316,7 +365,7 @@ class YTMusicService {
       this.downloadProgress.set(downloadId, {
         id: downloadId,
         status: 'completed',
-        progress: 100
+        progress: 100,
       });
     } catch (error) {
       console.error('Download error:', error);
@@ -324,13 +373,17 @@ class YTMusicService {
         id: downloadId,
         status: 'error',
         progress: 0,
-        error: error instanceof Error ? error.message : 'Download failed'
+        error: error instanceof Error ? error.message : 'Download failed',
       });
       throw error;
     }
   }
 
-  private async addDownloadedSongToDatabase(songInfo: any, filePath: string, cleanTitle: string) {
+  private async addDownloadedSongToDatabase(
+    songInfo: any,
+    filePath: string,
+    cleanTitle: string,
+  ) {
     try {
       // Extract artwork from the MP3 file
       let artworkPath: string | null = null;
@@ -369,7 +422,10 @@ class YTMusicService {
         artistName = songInfo.uploader;
       } else if (songInfo.channel && typeof songInfo.channel === 'string') {
         artistName = songInfo.channel;
-      } else if (songInfo.uploader_id && typeof songInfo.uploader_id === 'string') {
+      } else if (
+        songInfo.uploader_id &&
+        typeof songInfo.uploader_id === 'string'
+      ) {
         artistName = songInfo.uploader_id;
       }
 
@@ -389,10 +445,12 @@ class YTMusicService {
             title: albumTitle,
             artist_id: artist.id,
             release_year: songInfo.release_year || null,
-            artwork_path: artworkPath  // Use extracted artwork for album
+            artwork_path: artworkPath, // Use extracted artwork for album
           };
           album = await AlbumModel.create(albumData);
-          console.log(`✅ Created album "${albumTitle}" with artwork for YouTube song`);
+          console.log(
+            `✅ Created album "${albumTitle}" with artwork for YouTube song`,
+          );
         } else if (artworkPath && !album.artwork_path) {
           // Update album with artwork if it doesn't have one
           await AlbumModel.update(album.id, { artwork_path: artworkPath });
@@ -402,20 +460,25 @@ class YTMusicService {
 
       // Create song with YouTube ID and cleaned title
       const songData = {
-        title: cleanTitle,  // Use cleaned title instead of original
+        title: cleanTitle, // Use cleaned title instead of original
         artist_id: artist.id,
         album_id: album ? album.id : null,
         duration: songInfo.duration ? Math.floor(songInfo.duration) : null,
         file_path: filePath,
         genre: songInfo.genre || null,
-        year: songInfo.release_year || songInfo.release_date?.substring(0, 4) || null,
+        year:
+          songInfo.release_year ||
+          songInfo.release_date?.substring(0, 4) ||
+          null,
         track_number: songInfo.track_number || null,
         source: 'youtube-music' as const,
-        youtube_id: songInfo.id  // Save YouTube video ID
+        youtube_id: songInfo.id, // Save YouTube video ID
       };
 
       await SongModel.create(songData);
-      console.log(`✅ Added downloaded song to database: "${cleanTitle}" by "${artist.name}" (YouTube ID: ${songInfo.id})`);
+      console.log(
+        `✅ Added downloaded song to database: "${cleanTitle}" by "${artist.name}" (YouTube ID: ${songInfo.id})`,
+      );
     } catch (error) {
       console.error('Error adding song to database:', error);
     }
@@ -428,7 +491,8 @@ class YTMusicService {
 
   getAllActiveDownloads(): DownloadProgress[] {
     return Array.from(this.downloadProgress.values()).filter(
-      progress => progress.status === 'downloading' || progress.status === 'processing'
+      (progress) =>
+        progress.status === 'downloading' || progress.status === 'processing',
     );
   }
 

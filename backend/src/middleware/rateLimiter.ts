@@ -1,6 +1,6 @@
+import type { NextFunction, Request, Response } from 'express';
 import { RateLimiterMemory } from 'rate-limiter-flexible';
-import { Request, Response, NextFunction } from 'express';
-import config from '../config/config';
+import config from '../config/config.js';
 
 const rateLimiter = new RateLimiterMemory({
   keyPrefix: 'musable',
@@ -11,7 +11,7 @@ const rateLimiter = new RateLimiterMemory({
 export const rateLimiterMiddleware = async (
   req: Request,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ): Promise<void> => {
   try {
     const key = req.ip || 'unknown';
@@ -26,8 +26,8 @@ export const rateLimiterMiddleware = async (
       error: {
         message: 'Too many requests',
         retryAfter: Math.round(msBeforeNext / 1000),
-        remainingPoints
-      }
+        remainingPoints,
+      },
     });
   }
 };
