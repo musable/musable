@@ -137,6 +137,17 @@ class SettingsModel {
     if (publicSharingSetting === null) {
       await this.setSetting('public_sharing_enabled', 'false');
     }
+
+    // Initialize scan options with defaults
+    const scanParallelism = await this.getSetting('scan_parallelism');
+    if (scanParallelism === null) {
+      await this.setSetting('scan_parallelism', '5');
+    }
+
+    const scanBatchSize = await this.getSetting('scan_batch_size');
+    if (scanBatchSize === null) {
+      await this.setSetting('scan_batch_size', '50');
+    }
   }
 
   // Static convenience methods

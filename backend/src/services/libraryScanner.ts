@@ -1,6 +1,7 @@
 import chokidar from 'chokidar';
 import fs from 'fs';
 import { parseFile } from 'music-metadata';
+import pLimit from 'p-limit';
 import path from 'path';
 import sharp from 'sharp';
 import { promisify } from 'util';
@@ -26,6 +27,7 @@ export interface ScanProgress {
   errorMessage?: string;
   totalFiles?: number;
   progress?: number;
+  parallelism?: number;
 }
 
 export interface ScanResult {
@@ -33,6 +35,11 @@ export interface ScanResult {
   filesAdded: number;
   filesUpdated: number;
   errors: string[];
+}
+
+export interface ScanOptions {
+  parallelism?: number;
+  batchSize?: number;
 }
 
 export class LibraryScanner {
@@ -92,7 +99,10 @@ export class LibraryScanner {
     }
   }
 
-  async startScan(scanPaths?: string[]): Promise<number> {
+  async startScan(
+    scanPaths?: string[],
+    options?: ScanOptions,
+  ): Promise<number> {
     if (this.isScanning) {
       throw new Error('Scan already in progress');
     }
@@ -119,6 +129,11 @@ export class LibraryScanner {
 
     const scanId = result.lastID!;
 
+    // Get parallelism setting from database or use default
+    const parallelism =
+      options?.parallelism ||
+      parseInt((await SettingsModel.getSetting('scan_parallelism')) || '5', 10);
+
     this.currentScan = {
       id: scanId,
       status: 'running',
@@ -129,9 +144,10 @@ export class LibraryScanner {
       startedAt: new Date().toISOString(),
       totalFiles: 0,
       progress: 0,
+      parallelism,
     };
 
-    this.performScan(scanId, paths)
+    this.performScan(scanId, paths, options)
       .catch((error) => {
         logger.error('Scan failed:', error);
         this.updateScanStatus(scanId, 'failed', error.message);
@@ -144,7 +160,11 @@ export class LibraryScanner {
     return scanId;
   }
 
-  private async performScan(scanId: number, paths: string[]): Promise<void> {
+  private async performScan(
+    scanId: number,
+    paths: string[],
+    options?: ScanOptions,
+  ): Promise<void> {
     const errors: string[] = [];
     let filesScanned = 0;
     let filesAdded = 0;
@@ -164,6 +184,19 @@ export class LibraryScanner {
         this.currentScan.totalFiles = totalFiles;
       }
 
+      // Get parallelism setting
+      const parallelism =
+        options?.parallelism ||
+        parseInt(
+          (await SettingsModel.getSetting('scan_parallelism')) || '5',
+          10,
+        );
+
+      // Create concurrency limiter
+      const limit = pLimit(parallelism);
+
+      // Collect all files to process
+      const allFiles: string[] = [];
       for (const scanPath of paths) {
         if (!fs.existsSync(scanPath)) {
           const error = `Scan path does not exist: ${scanPath}`;
@@ -174,55 +207,84 @@ export class LibraryScanner {
 
         const audioFiles = await this.findAudioFiles(scanPath);
         logger.info(`Found ${audioFiles.length} audio files in ${scanPath}`);
+        allFiles.push(...audioFiles);
+      }
 
-        for (const filePath of audioFiles) {
-          try {
-            if (this.currentScan) {
-              this.currentScan.currentFile = path.basename(filePath);
-              this.currentScan.filesScanned = filesScanned;
-              this.currentScan.filesAdded = filesAdded;
-              this.currentScan.filesUpdated = filesUpdated;
-              this.currentScan.errorsCount = errors.length;
-              this.currentScan.progress =
-                totalFiles > 0
-                  ? Math.round((filesScanned / totalFiles) * 100)
-                  : 0;
-            }
+      // Process files in parallel with concurrency control
+      const processFile = async (
+        filePath: string,
+      ): Promise<{ added: boolean; updated: boolean; error?: string }> => {
+        try {
+          const existingSong = await SongModel.findByPath(filePath);
+          const fileStats = fs.statSync(filePath);
 
-            const existingSong = await SongModel.findByPath(filePath);
-            const fileStats = fs.statSync(filePath);
-
-            if (existingSong && existingSong.file_size === fileStats.size) {
-              filesScanned++;
-              continue;
-            }
-
-            await this.scanFile(filePath);
-
-            if (existingSong) {
-              filesUpdated++;
-            } else {
-              filesAdded++;
-            }
-
-            filesScanned++;
-
-            // Update scan results in database periodically (every 10 files)
-            if (filesScanned % 10 === 0) {
-              await this.updateScanResults(
-                scanId,
-                filesScanned,
-                filesAdded,
-                filesUpdated,
-                errors.length,
-              );
-            }
-          } catch (error: any) {
-            const errorMsg = `Error processing ${filePath}: ${error.message}`;
-            errors.push(errorMsg);
-            logger.error(errorMsg);
+          if (existingSong && existingSong.file_size === fileStats.size) {
+            return { added: false, updated: false };
           }
+
+          await this.scanFile(filePath);
+
+          return {
+            added: !existingSong,
+            updated: !!existingSong,
+          };
+        } catch (error: any) {
+          const errorMsg = `Error processing ${filePath}: ${error.message}`;
+          logger.error(errorMsg);
+          return { added: false, updated: false, error: errorMsg };
         }
+      };
+
+      // Create promises with concurrency control
+      const filePromises = allFiles.map((filePath) =>
+        limit(async () => {
+          const result = await processFile(filePath);
+
+          // Thread-safe progress updates
+          if (this.currentScan) {
+            this.currentScan.currentFile = path.basename(filePath);
+            this.currentScan.filesScanned = filesScanned + 1;
+
+            if (result.added) {
+              this.currentScan.filesAdded = filesAdded + 1;
+            }
+            if (result.updated) {
+              this.currentScan.filesUpdated = filesUpdated + 1;
+            }
+            if (result.error) {
+              this.currentScan.errorsCount = errors.length + 1;
+              errors.push(result.error);
+            }
+
+            this.currentScan.progress =
+              totalFiles > 0
+                ? Math.round(((filesScanned + 1) / totalFiles) * 100)
+                : 0;
+          }
+
+          return result;
+        }),
+      );
+
+      // Process files in batches for progress updates
+      const batchSize = options?.batchSize || 50;
+      for (let i = 0; i < filePromises.length; i += batchSize) {
+        const batch = filePromises.slice(i, i + batchSize);
+        const batchResults = await Promise.all(batch);
+
+        // Update counters
+        filesScanned += batchResults.length;
+        filesAdded += batchResults.filter((r) => r.added).length;
+        filesUpdated += batchResults.filter((r) => r.updated).length;
+
+        // Update database periodically
+        await this.updateScanResults(
+          scanId,
+          filesScanned,
+          filesAdded,
+          filesUpdated,
+          errors.length,
+        );
       }
 
       // Final update with all results
@@ -449,6 +511,37 @@ export class LibraryScanner {
       totalDuration,
       formatHours: Math.round((totalDuration / 3600) * 100) / 100,
     };
+  }
+
+  async getScanOptions(): Promise<ScanOptions> {
+    const parallelism = parseInt(
+      (await SettingsModel.getSetting('scan_parallelism')) || '5',
+      10,
+    );
+    const batchSize = parseInt(
+      (await SettingsModel.getSetting('scan_batch_size')) || '50',
+      10,
+    );
+
+    return {
+      parallelism,
+      batchSize,
+    };
+  }
+
+  async setScanOptions(options: ScanOptions): Promise<void> {
+    if (options.parallelism !== undefined) {
+      await SettingsModel.setSetting(
+        'scan_parallelism',
+        options.parallelism.toString(),
+      );
+    }
+    if (options.batchSize !== undefined) {
+      await SettingsModel.setSetting(
+        'scan_batch_size',
+        options.batchSize.toString(),
+      );
+    }
   }
 
   async refreshFileWatcher(): Promise<void> {

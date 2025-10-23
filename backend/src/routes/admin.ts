@@ -15,9 +15,11 @@ import {
   getDashboardStats,
   getLibraryPaths,
   getListeningStats,
+  getScanOptions,
   getSystemSetting,
   getUserActivity,
   revokeInvite,
+  setScanOptions,
   setSystemSetting,
   updateLibraryPath,
   updateUser,
@@ -55,6 +57,10 @@ router.delete('/library/paths/:id', deleteLibraryPath);
 router.get('/settings', getAllSystemSettings);
 router.get('/settings/:key', getSystemSetting);
 router.put('/settings/:key', setSystemSetting);
+
+// Scan options routes
+router.get('/scan-options', getScanOptions);
+router.put('/scan-options', setScanOptions);
 
 // User profile picture management routes
 router.put(

@@ -476,6 +476,38 @@ export const getAllSystemSettings = asyncHandler(
   },
 );
 
+export const getScanOptions = asyncHandler(
+  async (req: AuthRequest, res: Response) => {
+    const scanOptions = await libraryScanner.getScanOptions();
+
+    res.json({
+      success: true,
+      data: { scanOptions },
+    });
+  },
+);
+
+export const setScanOptions = asyncHandler(
+  async (req: AuthRequest, res: Response) => {
+    const { parallelism, batchSize } = req.body;
+
+    if (parallelism !== undefined && (parallelism < 1 || parallelism > 20)) {
+      throw new AppError('Parallelism must be between 1 and 20', 400);
+    }
+
+    if (batchSize !== undefined && (batchSize < 10 || batchSize > 200)) {
+      throw new AppError('Batch size must be between 10 and 200', 400);
+    }
+
+    await libraryScanner.setScanOptions({ parallelism, batchSize });
+
+    res.json({
+      success: true,
+      data: { message: 'Scan options updated successfully' },
+    });
+  },
+);
+
 // Multer configuration for admin profile picture uploads
 const adminProfilePictureStorage = multer.diskStorage({
   destination: (req, file, cb) => {
