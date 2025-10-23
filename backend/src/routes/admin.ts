@@ -1,29 +1,29 @@
 import { Router } from 'express';
 import {
-  getDashboardStats,
-  getAllUsers,
-  updateUser,
-  deleteUser,
-  createInvite,
-  getAllInvites,
-  revokeInvite,
-  getAllHistory,
-  getListeningStats,
-  deleteSong,
-  cleanupExpiredInvites,
-  getUserActivity,
-  getLibraryPaths,
   addLibraryPath,
-  updateLibraryPath,
-  deleteLibraryPath,
-  getSystemSetting,
-  setSystemSetting,
-  getAllSystemSettings,
   adminUploadProfilePicture,
+  cleanupExpiredInvites,
+  createInvite,
+  deleteLibraryPath,
+  deleteSong,
+  deleteUser,
+  deleteUserProfilePicture,
+  getAllHistory,
+  getAllInvites,
+  getAllSystemSettings,
+  getAllUsers,
+  getDashboardStats,
+  getLibraryPaths,
+  getListeningStats,
+  getSystemSetting,
+  getUserActivity,
+  revokeInvite,
+  setSystemSetting,
+  updateLibraryPath,
+  updateUser,
   updateUserProfilePicture,
-  deleteUserProfilePicture
-} from '../controllers/adminController';
-import { authenticateToken, requireAdmin } from '../middleware/auth';
+} from '../controllers/adminController.js';
+import { authenticateToken, requireAdmin } from '../middleware/auth.js';
 
 const router = Router();
 
@@ -57,7 +57,11 @@ router.get('/settings/:key', getSystemSetting);
 router.put('/settings/:key', setSystemSetting);
 
 // User profile picture management routes
-router.put('/users/:userId/profile-picture', adminUploadProfilePicture.single('profilePicture'), updateUserProfilePicture);
+router.put(
+  '/users/:userId/profile-picture',
+  adminUploadProfilePicture.single('profilePicture'),
+  updateUserProfilePicture,
+);
 router.delete('/users/:userId/profile-picture', deleteUserProfilePicture);
 
 export default router;

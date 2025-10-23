@@ -1,17 +1,17 @@
-import fs from 'fs';
-import path from 'path';
-import { parseFile } from 'music-metadata';
-import sharp from 'sharp';
 import chokidar from 'chokidar';
+import fs from 'fs';
+import { parseFile } from 'music-metadata';
+import path from 'path';
+import sharp from 'sharp';
 import { promisify } from 'util';
 
-import config from '../config/config';
-import logger from '../utils/logger';
-import SongModel, { CreateSongData } from '../models/Song';
-import ArtistModel from '../models/Artist';
-import AlbumModel from '../models/Album';
-import SettingsModel from '../models/Settings';
-import Database from '../config/database';
+import config from '../config/config.js';
+import Database from '../config/database.js';
+import AlbumModel from '../models/Album.js';
+import ArtistModel from '../models/Artist.js';
+import SettingsModel from '../models/Settings.js';
+import SongModel, { type CreateSongData } from '../models/Song.js';
+import logger from '../utils/logger.js';
 
 export interface ScanProgress {
   id: number;
@@ -54,35 +54,35 @@ export class LibraryScanner {
       }
 
       this.watcher = chokidar.watch(paths, {
-        ignored: /(^|[\/\\])\../, // ignore dotfiles
+        ignored: /(^|[/\\])\../, // ignore dotfiles
         persistent: true,
         ignoreInitial: true,
         usePolling: false, // Use native file system events (more efficient)
         awaitWriteFinish: {
           stabilityThreshold: 2000,
-          pollInterval: 100
+          pollInterval: 100,
         },
         depth: 99, // Still watch subdirectories but don't go too deep
         // Reduce file descriptor usage
         alwaysStat: false,
-        atomic: false
+        atomic: false,
       });
 
       this.watcher
         .on('add', (filePath) => {
           if (this.isSupportedAudioFile(filePath)) {
             logger.info(`New audio file detected: ${filePath}`);
-            this.scanFile(filePath).catch(error => {
+            this.scanFile(filePath).catch((error) => {
               logger.error(`Error scanning new file ${filePath}:`, error);
             });
           }
         })
         .on('unlink', (filePath) => {
-          this.removeDeletedFile(filePath).catch(error => {
+          this.removeDeletedFile(filePath).catch((error) => {
             logger.error(`Error removing deleted file ${filePath}:`, error);
           });
         })
-        .on('error', error => {
+        .on('error', (error) => {
           logger.error('File watcher error:', error);
         });
 
@@ -112,9 +112,9 @@ export class LibraryScanner {
     this.isScanning = true;
 
     const result = await this.db.run(
-      `INSERT INTO scan_history (started_at, scan_path, status) 
+      `INSERT INTO scan_history (started_at, scan_path, status)
        VALUES (CURRENT_TIMESTAMP, ?, 'running')`,
-      [JSON.stringify(paths)]
+      [JSON.stringify(paths)],
     );
 
     const scanId = result.lastID!;
@@ -128,16 +128,18 @@ export class LibraryScanner {
       errorsCount: 0,
       startedAt: new Date().toISOString(),
       totalFiles: 0,
-      progress: 0
+      progress: 0,
     };
 
-    this.performScan(scanId, paths).catch(error => {
-      logger.error('Scan failed:', error);
-      this.updateScanStatus(scanId, 'failed', error.message);
-    }).finally(() => {
-      this.isScanning = false;
-      this.currentScan = null;
-    });
+    this.performScan(scanId, paths)
+      .catch((error) => {
+        logger.error('Scan failed:', error);
+        this.updateScanStatus(scanId, 'failed', error.message);
+      })
+      .finally(() => {
+        this.isScanning = false;
+        this.currentScan = null;
+      });
 
     return scanId;
   }
@@ -181,7 +183,10 @@ export class LibraryScanner {
               this.currentScan.filesAdded = filesAdded;
               this.currentScan.filesUpdated = filesUpdated;
               this.currentScan.errorsCount = errors.length;
-              this.currentScan.progress = totalFiles > 0 ? Math.round((filesScanned / totalFiles) * 100) : 0;
+              this.currentScan.progress =
+                totalFiles > 0
+                  ? Math.round((filesScanned / totalFiles) * 100)
+                  : 0;
             }
 
             const existingSong = await SongModel.findByPath(filePath);
@@ -204,9 +209,14 @@ export class LibraryScanner {
 
             // Update scan results in database periodically (every 10 files)
             if (filesScanned % 10 === 0) {
-              await this.updateScanResults(scanId, filesScanned, filesAdded, filesUpdated, errors.length);
+              await this.updateScanResults(
+                scanId,
+                filesScanned,
+                filesAdded,
+                filesUpdated,
+                errors.length,
+              );
             }
-
           } catch (error: any) {
             const errorMsg = `Error processing ${filePath}: ${error.message}`;
             errors.push(errorMsg);
@@ -216,7 +226,13 @@ export class LibraryScanner {
       }
 
       // Final update with all results
-      await this.updateScanResults(scanId, filesScanned, filesAdded, filesUpdated, errors.length);
+      await this.updateScanResults(
+        scanId,
+        filesScanned,
+        filesAdded,
+        filesUpdated,
+        errors.length,
+      );
       await this.updateScanStatus(scanId, 'completed');
 
       if (this.currentScan) {
@@ -225,8 +241,9 @@ export class LibraryScanner {
         this.currentScan.completedAt = new Date().toISOString();
       }
 
-      logger.info(`Scan completed: ${filesScanned} scanned, ${filesAdded} added, ${filesUpdated} updated, ${errors.length} errors`);
-
+      logger.info(
+        `Scan completed: ${filesScanned} scanned, ${filesAdded} added, ${filesUpdated} updated, ${errors.length} errors`,
+      );
     } catch (error: any) {
       await this.updateScanStatus(scanId, 'failed', error.message);
       if (this.currentScan) {
@@ -248,7 +265,9 @@ export class LibraryScanner {
 
       const artistName = metadata.common.artist || 'Unknown Artist';
       const albumTitle = metadata.common.album;
-      const title = metadata.common.title || path.basename(filePath, path.extname(filePath));
+      const title =
+        metadata.common.title ||
+        path.basename(filePath, path.extname(filePath));
 
       const artist = await ArtistModel.findOrCreate(artistName);
 
@@ -257,11 +276,18 @@ export class LibraryScanner {
         album = await AlbumModel.findOrCreate(
           albumTitle,
           artist.id,
-          metadata.common.year
+          metadata.common.year,
         );
 
-        if (metadata.common.picture && metadata.common.picture.length > 0 && !album.artwork_path) {
-          const artworkPath = await this.saveAlbumArtwork(album.id, metadata.common.picture[0]);
+        if (
+          metadata.common.picture &&
+          metadata.common.picture.length > 0 &&
+          !album.artwork_path
+        ) {
+          const artworkPath = await this.saveAlbumArtwork(
+            album.id,
+            metadata.common.picture[0],
+          );
           if (artworkPath) {
             await AlbumModel.updateArtwork(album.id, artworkPath);
           }
@@ -274,13 +300,15 @@ export class LibraryScanner {
         album_id: album?.id,
         file_path: filePath,
         file_size: fileStats.size,
-        duration: metadata.format.duration ? Math.round(metadata.format.duration) : undefined,
+        duration: metadata.format.duration
+          ? Math.round(metadata.format.duration)
+          : undefined,
         track_number: metadata.common.track?.no,
         genre: metadata.common.genre?.join(', '),
         year: metadata.common.year,
         bitrate: metadata.format.bitrate,
         sample_rate: metadata.format.sampleRate,
-        source: 'local'
+        source: 'local',
       };
 
       const existingSong = await SongModel.findByPath(filePath);
@@ -289,14 +317,16 @@ export class LibraryScanner {
       } else {
         await SongModel.create(songData);
       }
-
     } catch (error: any) {
       logger.error(`Failed to scan file ${filePath}:`, error);
       throw error;
     }
   }
 
-  private async saveAlbumArtwork(albumId: number, picture: any): Promise<string | null> {
+  private async saveAlbumArtwork(
+    albumId: number,
+    picture: any,
+  ): Promise<string | null> {
     try {
       const artworkDir = path.join(config.uploadPath, 'artwork');
       if (!fs.existsSync(artworkDir)) {
@@ -369,28 +399,32 @@ export class LibraryScanner {
     filesScanned: number,
     filesAdded: number,
     filesUpdated: number,
-    errorsCount: number
+    errorsCount: number,
   ): Promise<void> {
     await this.db.run(
-      `UPDATE scan_history 
+      `UPDATE scan_history
        SET files_scanned = ?, files_added = ?, files_updated = ?, errors_count = ?
        WHERE id = ?`,
-      [filesScanned, filesAdded, filesUpdated, errorsCount, scanId]
+      [filesScanned, filesAdded, filesUpdated, errorsCount, scanId],
     );
   }
 
-  private async updateScanStatus(scanId: number, status: string, errorMessage?: string): Promise<void> {
+  private async updateScanStatus(
+    scanId: number,
+    status: string,
+    errorMessage?: string,
+  ): Promise<void> {
     await this.db.run(
-      `UPDATE scan_history 
+      `UPDATE scan_history
        SET status = ?, completed_at = CURRENT_TIMESTAMP, error_message = ?
        WHERE id = ?`,
-      [status, errorMessage || null, scanId]
+      [status, errorMessage || null, scanId],
     );
   }
 
   async getScanHistory(): Promise<any[]> {
     return await this.db.query(
-      'SELECT * FROM scan_history ORDER BY started_at DESC LIMIT 50'
+      'SELECT * FROM scan_history ORDER BY started_at DESC LIMIT 50',
     );
   }
 
@@ -413,7 +447,7 @@ export class LibraryScanner {
       artists: artistCount,
       albums: albumCount,
       totalDuration,
-      formatHours: Math.round(totalDuration / 3600 * 100) / 100
+      formatHours: Math.round((totalDuration / 3600) * 100) / 100,
     };
   }
 

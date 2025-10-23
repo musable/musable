@@ -1,4 +1,4 @@
-import Database from '../config/database';
+import Database from '../config/database.js';
 
 export interface AlbumFollow {
   id: number;
@@ -26,20 +26,23 @@ export class AlbumFollowsModel {
   async followAlbum(userId: number, albumId: number): Promise<void> {
     await this.db.run(
       'INSERT OR IGNORE INTO album_follows (user_id, album_id) VALUES (?, ?)',
-      [userId, albumId]
+      [userId, albumId],
     );
   }
 
   async unfollowAlbum(userId: number, albumId: number): Promise<void> {
     await this.db.run(
       'DELETE FROM album_follows WHERE user_id = ? AND album_id = ?',
-      [userId, albumId]
+      [userId, albumId],
     );
   }
 
-  async toggleAlbumFollow(userId: number, albumId: number): Promise<{ isFollowing: boolean }> {
+  async toggleAlbumFollow(
+    userId: number,
+    albumId: number,
+  ): Promise<{ isFollowing: boolean }> {
     const isFollowing = await this.isFollowingAlbum(userId, albumId);
-    
+
     if (isFollowing) {
       await this.unfollowAlbum(userId, albumId);
       return { isFollowing: false };
@@ -52,15 +55,17 @@ export class AlbumFollowsModel {
   async isFollowingAlbum(userId: number, albumId: number): Promise<boolean> {
     const result = await this.db.get<{ count: number }>(
       'SELECT COUNT(*) as count FROM album_follows WHERE user_id = ? AND album_id = ?',
-      [userId, albumId]
+      [userId, albumId],
     );
-    
+
     return (result?.count || 0) > 0;
   }
 
-  async getUserFollowedAlbums(userId: number): Promise<AlbumWithFollowStatus[]> {
+  async getUserFollowedAlbums(
+    userId: number,
+  ): Promise<AlbumWithFollowStatus[]> {
     return await this.db.query<AlbumWithFollowStatus>(
-      `SELECT 
+      `SELECT
         a.id,
         a.title,
         a.artist_id,
@@ -78,13 +83,17 @@ export class AlbumFollowsModel {
        WHERE af.user_id = ?
        GROUP BY a.id, a.title, a.artist_id, ar.name, a.release_year, a.artwork_path, af.followed_at
        ORDER BY af.followed_at DESC`,
-      [userId]
+      [userId],
     );
   }
 
-  async getAlbumsWithFollowStatus(userId: number, limit: number = 50, offset: number = 0): Promise<AlbumWithFollowStatus[]> {
+  async getAlbumsWithFollowStatus(
+    userId: number,
+    limit: number = 50,
+    offset: number = 0,
+  ): Promise<AlbumWithFollowStatus[]> {
     return await this.db.query<AlbumWithFollowStatus>(
-      `SELECT 
+      `SELECT
         a.id,
         a.title,
         a.artist_id,
@@ -102,15 +111,19 @@ export class AlbumFollowsModel {
        GROUP BY a.id, a.title, a.artist_id, ar.name, a.release_year, a.artwork_path, af.followed_at
        ORDER BY a.created_at DESC
        LIMIT ? OFFSET ?`,
-      [userId, limit, offset]
+      [userId, limit, offset],
     );
   }
 
-  async searchAlbumsWithFollowStatus(userId: number, query: string, limit: number = 50): Promise<AlbumWithFollowStatus[]> {
+  async searchAlbumsWithFollowStatus(
+    userId: number,
+    query: string,
+    limit: number = 50,
+  ): Promise<AlbumWithFollowStatus[]> {
     const searchTerm = `%${query}%`;
-    
+
     return await this.db.query<AlbumWithFollowStatus>(
-      `SELECT 
+      `SELECT
         a.id,
         a.title,
         a.artist_id,
@@ -129,13 +142,21 @@ export class AlbumFollowsModel {
        GROUP BY a.id, a.title, a.artist_id, ar.name, a.release_year, a.artwork_path, af.followed_at
        ORDER BY a.title
        LIMIT ?`,
-      [userId, searchTerm, searchTerm, limit]
+      [userId, searchTerm, searchTerm, limit],
     );
   }
 
-  async getFollowStats(userId: number): Promise<{ followedAlbums: number; totalSongs: number; totalDuration: number }> {
-    const result = await this.db.get<{ followedAlbums: number; totalSongs: number; totalDuration: number }>(
-      `SELECT 
+  async getFollowStats(userId: number): Promise<{
+    followedAlbums: number;
+    totalSongs: number;
+    totalDuration: number;
+  }> {
+    const result = await this.db.get<{
+      followedAlbums: number;
+      totalSongs: number;
+      totalDuration: number;
+    }>(
+      `SELECT
         COUNT(DISTINCT a.id) as followedAlbums,
         COUNT(s.id) as totalSongs,
         COALESCE(SUM(s.duration), 0) as totalDuration
@@ -143,9 +164,9 @@ export class AlbumFollowsModel {
        JOIN albums a ON af.album_id = a.id
        LEFT JOIN songs s ON a.id = s.album_id
        WHERE af.user_id = ?`,
-      [userId]
+      [userId],
     );
-    
+
     return result || { followedAlbums: 0, totalSongs: 0, totalDuration: 0 };
   }
 }

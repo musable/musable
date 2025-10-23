@@ -1,13 +1,13 @@
 import { Router } from 'express';
 import {
-  trackPlay,
-  getUserHistory,
-  getRecentlyPlayed,
-  getMostPlayed,
+  clearHistory,
   getListeningStats,
-  clearHistory
-} from '../controllers/historyController';
-import { authenticateToken } from '../middleware/auth';
+  getMostPlayed,
+  getRecentlyPlayed,
+  getUserHistory,
+  trackPlay,
+} from '../controllers/historyController.js';
+import { authenticateToken } from '../middleware/auth.js';
 
 const router = Router();
 

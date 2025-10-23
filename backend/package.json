@@ -2,11 +2,12 @@
   "name": "musable-backend",
   "version": "1.0.0",
   "description": "Musable - Self-hosted personal music library backend",
+  "type": "module",
   "main": "dist/app.js",
   "scripts": {
     "build": "tsc && cp -r src/models/schemas dist/models/",
     "start": "node dist/app.js",
-    "dev": "ts-node-dev --respawn --transpile-only src/app.ts",
+    "dev": "tsx watch src/app.ts",
     "test": "jest",
     "test:watch": "jest --watch",
     "lint": "eslint src/**/*.ts",
@@ -62,7 +63,7 @@
     "@types/mime-types": "^2.1.4",
     "@types/morgan": "^1.9.9",
     "@types/multer": "^1.4.11",
-    "@types/node": "^20.10.4",
+    "@types/node": "^20.19.23",
     "@types/uuid": "^9.0.7",
     "@typescript-eslint/eslint-plugin": "^6.14.0",
     "@typescript-eslint/parser": "^6.14.0",
@@ -71,6 +72,7 @@
     "ts-jest": "^29.1.1",
     "ts-node": "^10.9.2",
     "ts-node-dev": "^2.0.0",
+    "tsx": "^4.20.6",
     "typescript": "^5.3.3"
   },
   "engines": {
