@@ -1,10 +1,10 @@
+import fs from 'node:fs';
+import path from 'node:path';
 import chokidar from 'chokidar';
-import fs from 'fs';
+import type { IPicture } from 'music-metadata';
 import { parseFile } from 'music-metadata';
 import pLimit from 'p-limit';
-import path from 'path';
 import sharp from 'sharp';
-import { promisify } from 'util';
 
 import config from '../config/config.js';
 import Database from '../config/database.js';
@@ -40,6 +40,28 @@ export interface ScanResult {
 export interface ScanOptions {
   parallelism?: number;
   batchSize?: number;
+}
+
+// Database/DTO types
+interface ScanHistoryRow {
+  id: number;
+  started_at: string;
+  completed_at?: string | null;
+  scan_path: string;
+  status: string;
+  files_scanned?: number | null;
+  files_added?: number | null;
+  files_updated?: number | null;
+  errors_count?: number | null;
+  error_message?: string | null;
+}
+
+interface LibraryStats {
+  songs: number;
+  artists: number;
+  albums: number;
+  totalDuration: number;
+  formatHours: number;
 }
 
 export class LibraryScanner {
@@ -127,12 +149,14 @@ export class LibraryScanner {
       [JSON.stringify(paths)],
     );
 
-    const scanId = result.lastID!;
+    const lastId = result.lastID;
+    if (lastId == null) {
+      throw new Error('Failed to create scan history record');
+    }
+    const scanId = lastId;
 
-    // Get parallelism setting from database or use default
-    const parallelism =
-      options?.parallelism ||
-      parseInt((await SettingsModel.getSetting('scan_parallelism')) || '5', 10);
+    // Determine effective parallelism
+    const parallelism = await this.resolveParallelism(options);
 
     this.currentScan = {
       id: scanId,
@@ -147,10 +171,12 @@ export class LibraryScanner {
       parallelism,
     };
 
-    this.performScan(scanId, paths, options)
+    const effectiveOptions = { ...options, parallelism };
+
+    this.performScan(scanId, paths, effectiveOptions)
       .catch((error) => {
         logger.error('Scan failed:', error);
-        this.updateScanStatus(scanId, 'failed', error.message);
+        this.updateScanStatus(scanId, 'failed', (error as Error).message);
       })
       .finally(() => {
         this.isScanning = false;
@@ -166,153 +192,256 @@ export class LibraryScanner {
     options?: ScanOptions,
   ): Promise<void> {
     const errors: string[] = [];
-    let filesScanned = 0;
-    let filesAdded = 0;
-    let filesUpdated = 0;
-    let totalFiles = 0;
 
     try {
-      // First, count all files to show accurate progress
-      for (const scanPath of paths) {
-        if (fs.existsSync(scanPath)) {
-          const audioFiles = await this.findAudioFiles(scanPath);
-          totalFiles += audioFiles.length;
-        }
-      }
-
-      if (this.currentScan) {
-        this.currentScan.totalFiles = totalFiles;
-      }
-
-      // Get parallelism setting
-      const parallelism =
-        options?.parallelism ||
-        parseInt(
-          (await SettingsModel.getSetting('scan_parallelism')) || '5',
-          10,
-        );
-
-      // Create concurrency limiter
-      const limit = pLimit(parallelism);
-
-      // Collect all files to process
-      const allFiles: string[] = [];
-      for (const scanPath of paths) {
-        if (!fs.existsSync(scanPath)) {
-          const error = `Scan path does not exist: ${scanPath}`;
-          errors.push(error);
-          logger.warn(error);
-          continue;
-        }
-
-        const audioFiles = await this.findAudioFiles(scanPath);
-        logger.info(`Found ${audioFiles.length} audio files in ${scanPath}`);
-        allFiles.push(...audioFiles);
-      }
-
-      // Process files in parallel with concurrency control
-      const processFile = async (
-        filePath: string,
-      ): Promise<{ added: boolean; updated: boolean; error?: string }> => {
-        try {
-          const existingSong = await SongModel.findByPath(filePath);
-          const fileStats = fs.statSync(filePath);
-
-          if (existingSong && existingSong.file_size === fileStats.size) {
-            return { added: false, updated: false };
-          }
-
-          await this.scanFile(filePath);
-
-          return {
-            added: !existingSong,
-            updated: !!existingSong,
-          };
-        } catch (error: any) {
-          const errorMsg = `Error processing ${filePath}: ${error.message}`;
-          logger.error(errorMsg);
-          return { added: false, updated: false, error: errorMsg };
-        }
-      };
-
-      // Create promises with concurrency control
-      const filePromises = allFiles.map((filePath) =>
-        limit(async () => {
-          const result = await processFile(filePath);
-
-          // Thread-safe progress updates
-          if (this.currentScan) {
-            this.currentScan.currentFile = path.basename(filePath);
-            this.currentScan.filesScanned = filesScanned + 1;
-
-            if (result.added) {
-              this.currentScan.filesAdded = filesAdded + 1;
-            }
-            if (result.updated) {
-              this.currentScan.filesUpdated = filesUpdated + 1;
-            }
-            if (result.error) {
-              this.currentScan.errorsCount = errors.length + 1;
-              errors.push(result.error);
-            }
-
-            this.currentScan.progress =
-              totalFiles > 0
-                ? Math.round(((filesScanned + 1) / totalFiles) * 100)
-                : 0;
-          }
-
-          return result;
-        }),
+      const parallelism = await this.resolveParallelism(options);
+      const allFiles = await this.listAllAudioFiles(
+        paths,
+        errors,
+        parallelism,
+        (n) => this.incrementDiscoveredCount(n),
       );
-
-      // Process files in batches for progress updates
-      const batchSize = options?.batchSize || 50;
-      for (let i = 0; i < filePromises.length; i += batchSize) {
-        const batch = filePromises.slice(i, i + batchSize);
-        const batchResults = await Promise.all(batch);
-
-        // Update counters
-        filesScanned += batchResults.length;
-        filesAdded += batchResults.filter((r) => r.added).length;
-        filesUpdated += batchResults.filter((r) => r.updated).length;
-
-        // Update database periodically
-        await this.updateScanResults(
-          scanId,
-          filesScanned,
-          filesAdded,
-          filesUpdated,
-          errors.length,
-        );
-      }
-
-      // Final update with all results
-      await this.updateScanResults(
-        scanId,
-        filesScanned,
-        filesAdded,
-        filesUpdated,
-        errors.length,
-      );
-      await this.updateScanStatus(scanId, 'completed');
-
-      if (this.currentScan) {
-        this.currentScan.progress = 100;
-        this.currentScan.status = 'completed';
-        this.currentScan.completedAt = new Date().toISOString();
-      }
 
       logger.info(
-        `Scan completed: ${filesScanned} scanned, ${filesAdded} added, ${filesUpdated} updated, ${errors.length} errors`,
+        `Processing ${allFiles.length} files with parallelism: ${parallelism}`,
       );
-    } catch (error: any) {
-      await this.updateScanStatus(scanId, 'failed', error.message);
-      if (this.currentScan) {
-        this.currentScan.status = 'failed';
-        this.currentScan.errorMessage = error.message;
+
+      const results = await this.processFilesWithConcurrency(
+        allFiles,
+        parallelism,
+      );
+
+      const aggregation = this.aggregateProcessingResults(results);
+      errors.push(...aggregation.errors);
+
+      await this.finalizeSuccess(scanId, aggregation, errors.length);
+
+      logger.info(
+        `Scan completed: ${aggregation.filesScanned} scanned, ${aggregation.filesAdded} added, ${aggregation.filesUpdated} updated, ${errors.length} errors`,
+      );
+    } catch (error: unknown) {
+      const err = error instanceof Error ? error : new Error(String(error));
+      await this.finalizeFailure(scanId, err);
+      throw err;
+    }
+  }
+
+  // SRP: options resolution (IoC-friendly)
+  private async resolveParallelism(options?: ScanOptions): Promise<number> {
+    if (options?.parallelism) return options.parallelism;
+    return parseInt(
+      (await SettingsModel.getSetting('scan_parallelism')) || '5',
+      10,
+    );
+  }
+
+  // SRP: collect files and accumulate path errors
+  private async listAllAudioFiles(
+    paths: string[],
+    errors: string[],
+    parallelism?: number,
+    onDiscover?: (n: number) => void,
+  ): Promise<string[]> {
+    const discoveredFiles: string[] = [];
+    const limit = pLimit(Math.max(1, parallelism || 5));
+
+    const processDirectory = async (dirPath: string): Promise<void> => {
+      try {
+        const items = await limit(() => fs.promises.readdir(dirPath));
+        logger.info(`Processing directory: ${dirPath}`);
+        await Promise.all(
+          items.map(async (item) => {
+            const itemPath = path.join(dirPath, item);
+            try {
+              const stats = await limit(() => fs.promises.stat(itemPath));
+              if (stats.isDirectory()) {
+                await processDirectory(itemPath);
+              } else if (
+                stats.isFile() &&
+                this.isSupportedAudioFile(itemPath)
+              ) {
+                logger.info(`Found audio file: ${itemPath}`);
+                discoveredFiles.push(itemPath);
+                if (onDiscover) onDiscover(1);
+              }
+            } catch (err: unknown) {
+              const msg = err instanceof Error ? err.message : String(err);
+              logger.warn(`Failed to stat ${itemPath}:`, msg);
+            }
+          }),
+        );
+      } catch (error: unknown) {
+        const msg = error instanceof Error ? error.message : String(error);
+        logger.warn(`Failed to read directory ${dirPath}:`, msg);
       }
-      throw error;
+    };
+
+    const roots = paths.filter((p) => {
+      if (!fs.existsSync(p)) {
+        const error = `Scan path does not exist: ${p}`;
+        errors.push(error);
+        logger.warn(error);
+        return false;
+      }
+      return true;
+    });
+
+    await Promise.all(roots.map((p) => processDirectory(p)));
+
+    logger.info(
+      `Found ${discoveredFiles.length} audio files across ${roots.length} root path(s)`,
+    );
+    return discoveredFiles;
+  }
+
+  // SRP: process a single file
+  private async processSingleFile(
+    filePath: string,
+  ): Promise<{ added: boolean; updated: boolean; error?: string }> {
+    try {
+      const fileStats = await fs.promises.stat(filePath);
+      const existingSong = await SongModel.findByPath(filePath);
+
+      if (existingSong && existingSong.file_size === fileStats.size) {
+        return { added: false, updated: false };
+      }
+
+      await this.scanFile(filePath);
+
+      return {
+        added: !existingSong,
+        updated: !!existingSong,
+      };
+    } catch (error: unknown) {
+      const msg = error instanceof Error ? error.message : String(error);
+      const errorMsg = `Error processing ${filePath}: ${msg}`;
+      logger.error(errorMsg);
+      return { added: false, updated: false, error: errorMsg };
+    }
+  }
+
+  // SRP: concurrency and logging
+  private async processFilesWithConcurrency(
+    files: string[],
+    parallelism: number,
+  ): Promise<
+    PromiseSettledResult<{
+      added: boolean;
+      updated: boolean;
+      error?: string;
+    }>[]
+  > {
+    const limit = pLimit(parallelism);
+    const tasks = files.map((filePath, index) =>
+      limit(async () => {
+        const startTime = Date.now();
+        const result = await this.processSingleFile(filePath);
+        const duration = Date.now() - startTime;
+        if (index % 10 === 0) {
+          logger.info(
+            `Processed ${path.basename(filePath)} in ${duration}ms (parallelism: ${parallelism})`,
+          );
+        }
+        this.updateCurrentScanOnFileResult(result, filePath);
+        return result;
+      }),
+    );
+    return await Promise.allSettled(tasks);
+  }
+
+  // SRP: aggregation
+  private aggregateProcessingResults(
+    results: PromiseSettledResult<{
+      added: boolean;
+      updated: boolean;
+      error?: string;
+    }>[],
+  ): {
+    filesScanned: number;
+    filesAdded: number;
+    filesUpdated: number;
+    errors: string[];
+  } {
+    let processedCount = 0;
+    let addedCount = 0;
+    let updatedCount = 0;
+    const errors: string[] = [];
+
+    for (const result of results) {
+      if (result.status === 'fulfilled') {
+        processedCount++;
+        if (result.value.added) addedCount++;
+        if (result.value.updated) updatedCount++;
+        if (result.value.error) errors.push(result.value.error);
+      } else {
+        errors.push(`Promise rejected: ${result.reason}`);
+      }
+    }
+
+    return {
+      filesScanned: processedCount,
+      filesAdded: addedCount,
+      filesUpdated: updatedCount,
+      errors,
+    };
+  }
+
+  // SRP: progress & finalization helpers
+  private incrementDiscoveredCount(delta: number): void {
+    if (this.currentScan) {
+      const current = this.currentScan.totalFiles || 0;
+      this.currentScan.totalFiles = current + delta;
+    }
+  }
+
+  private updateCurrentScanOnFileResult(
+    result: { added: boolean; updated: boolean; error?: string },
+    filePath: string,
+  ): void {
+    if (!this.currentScan) return;
+
+    this.currentScan.filesScanned += 1;
+    if (result.added) this.currentScan.filesAdded += 1;
+    if (result.updated) this.currentScan.filesUpdated += 1;
+    if (result.error) this.currentScan.errorsCount += 1;
+    this.currentScan.currentFile = filePath;
+
+    const total = this.currentScan.totalFiles || 0;
+    if (total > 0) {
+      const pct = Math.floor((this.currentScan.filesScanned / total) * 100);
+      this.currentScan.progress = Math.max(0, Math.min(100, pct));
+    }
+  }
+
+  private async finalizeSuccess(
+    scanId: number,
+    aggregation: {
+      filesScanned: number;
+      filesAdded: number;
+      filesUpdated: number;
+    },
+    errorsCount: number,
+  ): Promise<void> {
+    await this.updateScanResults(
+      scanId,
+      aggregation.filesScanned,
+      aggregation.filesAdded,
+      aggregation.filesUpdated,
+      errorsCount,
+    );
+    await this.updateScanStatus(scanId, 'completed');
+    if (this.currentScan) {
+      this.currentScan.progress = 100;
+      this.currentScan.status = 'completed';
+      this.currentScan.completedAt = new Date().toISOString();
+    }
+  }
+
+  private async finalizeFailure(scanId: number, error: Error): Promise<void> {
+    await this.updateScanStatus(scanId, 'failed', error.message);
+    if (this.currentScan) {
+      this.currentScan.status = 'failed';
+      this.currentScan.errorMessage = error.message;
     }
   }
 
@@ -348,7 +477,7 @@ export class LibraryScanner {
         ) {
           const artworkPath = await this.saveAlbumArtwork(
             album.id,
-            metadata.common.picture[0],
+            metadata.common.picture[0] as IPicture,
           );
           if (artworkPath) {
             await AlbumModel.updateArtwork(album.id, artworkPath);
@@ -379,15 +508,15 @@ export class LibraryScanner {
       } else {
         await SongModel.create(songData);
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error(`Failed to scan file ${filePath}:`, error);
-      throw error;
+      throw error instanceof Error ? error : new Error(String(error));
     }
   }
 
   private async saveAlbumArtwork(
     albumId: number,
-    picture: any,
+    picture: IPicture,
   ): Promise<string | null> {
     try {
       const artworkDir = path.join(config.uploadPath, 'artwork');
@@ -404,39 +533,10 @@ export class LibraryScanner {
         .toFile(artworkPath);
 
       return `/uploads/artwork/${filename}`;
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error('Failed to save album artwork:', error);
       return null;
     }
-  }
-
-  private async findAudioFiles(dirPath: string): Promise<string[]> {
-    const audioFiles: string[] = [];
-
-    const readDir = promisify(fs.readdir);
-    const stat = promisify(fs.stat);
-
-    const processDirectory = async (currentPath: string): Promise<void> => {
-      try {
-        const items = await readDir(currentPath);
-
-        for (const item of items) {
-          const itemPath = path.join(currentPath, item);
-          const itemStat = await stat(itemPath);
-
-          if (itemStat.isDirectory()) {
-            await processDirectory(itemPath);
-          } else if (itemStat.isFile() && this.isSupportedAudioFile(itemPath)) {
-            audioFiles.push(itemPath);
-          }
-        }
-      } catch (error: any) {
-        logger.warn(`Failed to read directory ${currentPath}:`, error.message);
-      }
-    };
-
-    await processDirectory(dirPath);
-    return audioFiles;
   }
 
   private isSupportedAudioFile(filePath: string): boolean {
@@ -451,7 +551,7 @@ export class LibraryScanner {
         await SongModel.deleteSong(song.id);
         logger.info(`Removed deleted file from library: ${filePath}`);
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error(`Failed to remove deleted file ${filePath}:`, error);
     }
   }
@@ -484,10 +584,10 @@ export class LibraryScanner {
     );
   }
 
-  async getScanHistory(): Promise<any[]> {
-    return await this.db.query(
+  async getScanHistory(): Promise<ScanHistoryRow[]> {
+    return (await this.db.query(
       'SELECT * FROM scan_history ORDER BY started_at DESC LIMIT 50',
-    );
+    )) as ScanHistoryRow[];
   }
 
   getCurrentScan(): ScanProgress | null {
@@ -498,7 +598,7 @@ export class LibraryScanner {
     return this.isScanning;
   }
 
-  async getLibraryStats(): Promise<any> {
+  async getLibraryStats(): Promise<LibraryStats> {
     const songCount = await SongModel.getSongCount();
     const artistCount = await ArtistModel.getArtistCount();
     const albumCount = await AlbumModel.getAlbumCount();
