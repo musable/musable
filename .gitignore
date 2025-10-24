@@ -149,3 +149,23 @@ vite.config.ts.timestamp-*
 # code chatbots
 .cursor/
 .claude/
+
+# Database files
+*.db
+*.db-shm
+*.db-wal
+*.sqlite
+*.sqlite3
+
+# Session files
+session.db
+sessions/
+
+# Upload directories
+uploads/
+music-uploads/
+yt-downloads/
+
+# Build directories
+dist/
+build/
