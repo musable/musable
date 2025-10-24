@@ -300,4 +300,6 @@ INSERT OR IGNORE INTO settings (key, value, description) VALUES
 ('registration_enabled', 'false', 'Whether new registrations are allowed'),
 ('max_file_size', '104857600', 'Maximum file size for uploads (100MB)'),
 ('supported_formats', '["mp3","flac","wav","m4a","aac","ogg"]', 'Supported audio formats'),
-('youtube_integration', 'true', 'Enable YouTube Music integration');
+('youtube_integration', 'true', 'Enable YouTube Music integration'),
+('scan_parallelism', '5', 'Number of files to process simultaneously during library scans'),
+('scan_batch_size', '50', 'Number of files to process before updating progress during scans');

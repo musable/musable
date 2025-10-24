@@ -1,4 +1,4 @@
-import Database from '../config/database';
+import Database from '../config/database.js';
 
 export interface Song {
   id: number;
@@ -63,8 +63,8 @@ export class SongModel {
         songData.bitrate || null,
         songData.sample_rate || null,
         songData.source || 'local',
-        songData.youtube_id || null
-      ]
+        songData.youtube_id || null,
+      ],
     );
 
     const song = await this.findById(result.lastID!);
@@ -76,29 +76,24 @@ export class SongModel {
   }
 
   async findById(id: number): Promise<Song | null> {
-    return await this.db.get<Song>(
-      'SELECT * FROM songs WHERE id = ?',
-      [id]
-    );
+    return await this.db.get<Song>('SELECT * FROM songs WHERE id = ?', [id]);
   }
 
   async findByPath(filePath: string): Promise<Song | null> {
-    return await this.db.get<Song>(
-      'SELECT * FROM songs WHERE file_path = ?',
-      [filePath]
-    );
+    return await this.db.get<Song>('SELECT * FROM songs WHERE file_path = ?', [
+      filePath,
+    ]);
   }
 
   async findByYoutubeId(youtubeId: string): Promise<Song | null> {
-    return await this.db.get<Song>(
-      'SELECT * FROM songs WHERE youtube_id = ?',
-      [youtubeId]
-    );
+    return await this.db.get<Song>('SELECT * FROM songs WHERE youtube_id = ?', [
+      youtubeId,
+    ]);
   }
 
   async findWithDetails(id: number): Promise<SongWithDetails | null> {
     return await this.db.get<SongWithDetails>(
-      `SELECT 
+      `SELECT
         s.*,
         a.name as artist_name,
         al.title as album_title,
@@ -107,13 +102,13 @@ export class SongModel {
        JOIN artists a ON s.artist_id = a.id
        LEFT JOIN albums al ON s.album_id = al.id
        WHERE s.id = ?`,
-      [id]
+      [id],
     );
   }
 
   async getAllWithDetails(): Promise<SongWithDetails[]> {
     return await this.db.query<SongWithDetails>(
-      `SELECT 
+      `SELECT
         s.*,
         a.name as artist_name,
         al.title as album_title,
@@ -121,14 +116,14 @@ export class SongModel {
        FROM songs s
        JOIN artists a ON s.artist_id = a.id
        LEFT JOIN albums al ON s.album_id = al.id
-       ORDER BY a.name, al.title, s.track_number, s.title`
+       ORDER BY a.name, al.title, s.track_number, s.title`,
     );
   }
 
   async searchSongs(query: string): Promise<SongWithDetails[]> {
     const searchTerm = `%${query}%`;
     return await this.db.query<SongWithDetails>(
-      `SELECT 
+      `SELECT
         s.*,
         a.name as artist_name,
         al.title as album_title,
@@ -136,18 +131,18 @@ export class SongModel {
        FROM songs s
        JOIN artists a ON s.artist_id = a.id
        LEFT JOIN albums al ON s.album_id = al.id
-       WHERE s.title LIKE ? 
-          OR a.name LIKE ? 
+       WHERE s.title LIKE ?
+          OR a.name LIKE ?
           OR al.title LIKE ?
           OR s.genre LIKE ?
        ORDER BY a.name, al.title, s.track_number, s.title`,
-      [searchTerm, searchTerm, searchTerm, searchTerm]
+      [searchTerm, searchTerm, searchTerm, searchTerm],
     );
   }
 
   async getSongsByArtist(artistId: number): Promise<SongWithDetails[]> {
     return await this.db.query<SongWithDetails>(
-      `SELECT 
+      `SELECT
         s.*,
         a.name as artist_name,
         al.title as album_title,
@@ -157,13 +152,13 @@ export class SongModel {
        LEFT JOIN albums al ON s.album_id = al.id
        WHERE s.artist_id = ?
        ORDER BY al.title, s.track_number, s.title`,
-      [artistId]
+      [artistId],
     );
   }
 
   async getSongsByAlbum(albumId: number): Promise<SongWithDetails[]> {
     return await this.db.query<SongWithDetails>(
-      `SELECT 
+      `SELECT
         s.*,
         a.name as artist_name,
         al.title as album_title,
@@ -173,18 +168,23 @@ export class SongModel {
        LEFT JOIN albums al ON s.album_id = al.id
        WHERE s.album_id = ?
        ORDER BY s.track_number, s.title`,
-      [albumId]
+      [albumId],
     );
   }
 
-  async updateSong(id: number, updates: Partial<CreateSongData>): Promise<void> {
-    const fields = Object.keys(updates).map(key => `${key} = ?`).join(', ');
+  async updateSong(
+    id: number,
+    updates: Partial<CreateSongData>,
+  ): Promise<void> {
+    const fields = Object.keys(updates)
+      .map((key) => `${key} = ?`)
+      .join(', ');
     const values = Object.values(updates);
     values.push(id);
 
     await this.db.run(
       `UPDATE songs SET ${fields}, updated_at = CURRENT_TIMESTAMP WHERE id = ?`,
-      values
+      values,
     );
   }
 
@@ -194,28 +194,28 @@ export class SongModel {
 
   async getSongCount(): Promise<number> {
     const result = await this.db.get<{ count: number }>(
-      'SELECT COUNT(*) as count FROM songs'
+      'SELECT COUNT(*) as count FROM songs',
     );
     return result!.count;
   }
 
   async getTotalDuration(): Promise<number> {
     const result = await this.db.get<{ total: number }>(
-      'SELECT SUM(duration) as total FROM songs WHERE duration IS NOT NULL'
+      'SELECT SUM(duration) as total FROM songs WHERE duration IS NOT NULL',
     );
     return result!.total || 0;
   }
 
   async getGenres(): Promise<string[]> {
     const result = await this.db.query<{ genre: string }>(
-      'SELECT DISTINCT genre FROM songs WHERE genre IS NOT NULL ORDER BY genre'
+      'SELECT DISTINCT genre FROM songs WHERE genre IS NOT NULL ORDER BY genre',
     );
-    return result.map(r => r.genre);
+    return result.map((r) => r.genre);
   }
 
   async getSongsByGenre(genre: string): Promise<SongWithDetails[]> {
     return await this.db.query<SongWithDetails>(
-      `SELECT 
+      `SELECT
         s.*,
         a.name as artist_name,
         al.title as album_title,
@@ -225,13 +225,13 @@ export class SongModel {
        LEFT JOIN albums al ON s.album_id = al.id
        WHERE s.genre = ?
        ORDER BY a.name, al.title, s.track_number, s.title`,
-      [genre]
+      [genre],
     );
   }
 
   async getRandomSongs(limit: number = 50): Promise<SongWithDetails[]> {
     return await this.db.query<SongWithDetails>(
-      `SELECT 
+      `SELECT
         s.*,
         a.name as artist_name,
         al.title as album_title,
@@ -241,7 +241,7 @@ export class SongModel {
        LEFT JOIN albums al ON s.album_id = al.id
        ORDER BY RANDOM()
        LIMIT ?`,
-      [limit]
+      [limit],
     );
   }
 }

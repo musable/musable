@@ -1,12 +1,12 @@
 import express from 'express';
-import { authenticateToken } from '../middleware/auth';
 import {
-  getFavorites,
-  toggleFavorite,
-  checkFavoriteStatus,
   addToFavorites,
-  removeFromFavorites
-} from '../controllers/favoritesController';
+  checkFavoriteStatus,
+  getFavorites,
+  removeFromFavorites,
+  toggleFavorite,
+} from '../controllers/favoritesController.js';
+import { authenticateToken } from '../middleware/auth.js';
 
 const router = express.Router();
 

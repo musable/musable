@@ -1,4 +1,4 @@
-import Database from '../config/database';
+import Database from '../config/database.js';
 
 export interface LibraryPath {
   id?: number;
@@ -21,7 +21,7 @@ class SettingsModel {
 
   async getLibraryPaths(): Promise<LibraryPath[]> {
     const paths = await this.db.query<LibraryPath>(`
-      SELECT * FROM library_paths 
+      SELECT * FROM library_paths
       ORDER BY created_at ASC
     `);
     return paths || [];
@@ -29,14 +29,14 @@ class SettingsModel {
 
   async addLibraryPath(path: string): Promise<LibraryPath> {
     const result = await this.db.run(
-      `INSERT INTO library_paths (path, is_active, created_at, updated_at) 
+      `INSERT INTO library_paths (path, is_active, created_at, updated_at)
        VALUES (?, ?, datetime('now'), datetime('now'))`,
-      [path, 1]
+      [path, 1],
     );
 
     const newPath = await this.db.get<LibraryPath>(
       'SELECT * FROM library_paths WHERE id = ?',
-      [result.lastID]
+      [result.lastID],
     );
 
     if (!newPath) {
@@ -46,7 +46,10 @@ class SettingsModel {
     return newPath;
   }
 
-  async updateLibraryPath(id: number, updates: Partial<LibraryPath>): Promise<LibraryPath> {
+  async updateLibraryPath(
+    id: number,
+    updates: Partial<LibraryPath>,
+  ): Promise<LibraryPath> {
     const updateFields: string[] = [];
     const values: any[] = [];
 
@@ -60,17 +63,17 @@ class SettingsModel {
       values.push(updates.is_active ? 1 : 0);
     }
 
-    updateFields.push('updated_at = datetime(\'now\')');
+    updateFields.push("updated_at = datetime('now')");
     values.push(id);
 
     await this.db.run(
       `UPDATE library_paths SET ${updateFields.join(', ')} WHERE id = ?`,
-      values
+      values,
     );
 
     const updatedPath = await this.db.get<LibraryPath>(
       'SELECT * FROM library_paths WHERE id = ?',
-      [id]
+      [id],
     );
 
     if (!updatedPath) {
@@ -81,10 +84,9 @@ class SettingsModel {
   }
 
   async deleteLibraryPath(id: number): Promise<void> {
-    const result = await this.db.run(
-      'DELETE FROM library_paths WHERE id = ?',
-      [id]
-    );
+    const result = await this.db.run('DELETE FROM library_paths WHERE id = ?', [
+      id,
+    ]);
 
     if (result.changes === 0) {
       throw new Error('Library path not found');
@@ -93,24 +95,24 @@ class SettingsModel {
 
   async getActivePaths(): Promise<string[]> {
     const paths = await this.db.query<LibraryPath>(
-      'SELECT path FROM library_paths WHERE is_active = 1'
+      'SELECT path FROM library_paths WHERE is_active = 1',
     );
-    return (paths || []).map(p => p.path);
+    return (paths || []).map((p) => p.path);
   }
 
   async getSetting(key: string): Promise<string | null> {
     const setting = await this.db.get<SystemSettings>(
       'SELECT value FROM settings WHERE key = ?',
-      [key]
+      [key],
     );
     return setting?.value || null;
   }
 
   async setSetting(key: string, value: string): Promise<void> {
     await this.db.run(
-      `INSERT OR REPLACE INTO settings (key, value, updated_at) 
+      `INSERT OR REPLACE INTO settings (key, value, updated_at)
        VALUES (?, ?, datetime('now'))`,
-      [key, value]
+      [key, value],
     );
   }
 
@@ -118,7 +120,7 @@ class SettingsModel {
     const existingPaths = await this.getLibraryPaths();
     if (existingPaths.length === 0) {
       // Add some default paths based on the config
-      const config = require('../config/config').default;
+      const config = (await import('../config/config.js')).default;
       if (config.libraryPaths && config.libraryPaths.length > 0) {
         for (const path of config.libraryPaths) {
           await this.addLibraryPath(path);
@@ -129,9 +131,22 @@ class SettingsModel {
 
   async initializeDefaultSettings(): Promise<void> {
     // Initialize default settings if they don't exist
-    const publicSharingSetting = await this.getSetting('public_sharing_enabled');
+    const publicSharingSetting = await this.getSetting(
+      'public_sharing_enabled',
+    );
     if (publicSharingSetting === null) {
       await this.setSetting('public_sharing_enabled', 'false');
+    }
+
+    // Initialize scan options with defaults
+    const scanParallelism = await this.getSetting('scan_parallelism');
+    if (scanParallelism === null) {
+      await this.setSetting('scan_parallelism', '5');
+    }
+
+    const scanBatchSize = await this.getSetting('scan_batch_size');
+    if (scanBatchSize === null) {
+      await this.setSetting('scan_batch_size', '50');
     }
   }
 

@@ -1,20 +1,20 @@
 import axios, { AxiosInstance, AxiosResponse } from 'axios';
-import { 
-  ApiResponse, 
-  User, 
-  LoginCredentials, 
-  RegisterData, 
-  Song, 
-  Artist, 
-  Album, 
-  Playlist, 
-  CreatePlaylistData, 
-  ListenHistory,
+import { getApiBaseUrl, getBaseUrl } from '../config/config';
+import {
+  Album,
+  ApiResponse,
+  Artist,
+  CreatePlaylistData,
   DashboardStats,
   Invite,
-  ScanProgress
+  ListenHistory,
+  LoginCredentials,
+  Playlist,
+  RegisterData,
+  ScanProgress,
+  Song,
+  User,
 } from '../types';
-import { getApiBaseUrl, getBaseUrl } from '../config/config';
 
 class ApiService {
   private api: AxiosInstance;
@@ -34,7 +34,7 @@ class ApiService {
 
   async initialize() {
     if (this.initialized) return;
-    
+
     try {
       const apiBaseUrl = getApiBaseUrl();
       this.api.defaults.baseURL = apiBaseUrl;
@@ -42,8 +42,12 @@ class ApiService {
     } catch (error) {
       console.warn('Config not loaded yet, using fallback API URL');
       // Check if we're on the development server (localhost:3000) vs production domain
-      const isLocalDevelopment = window.location.hostname === 'localhost' && window.location.port === '3000';
-      this.api.defaults.baseURL = isLocalDevelopment ? '/api' : 'https://musable.breadjs.nl/api';
+      const isLocalDevelopment =
+        window.location.hostname === 'localhost' &&
+        window.location.port === '3000';
+      this.api.defaults.baseURL = isLocalDevelopment
+        ? '/api'
+        : 'https://musable.breadjs.nl/api';
       this.initialized = true;
     }
   }
@@ -60,7 +64,7 @@ class ApiService {
       },
       (error) => {
         return Promise.reject(error);
-      }
+      },
     );
 
     // Response interceptor to handle errors
@@ -74,12 +78,16 @@ class ApiService {
           // Components can check if user is logged in and show appropriate UI
         }
         return Promise.reject(error);
-      }
+      },
     );
   }
 
   // Public method for making API requests - updated
-  public async request<T>(method: string, url: string, data?: any): Promise<ApiResponse<T>> {
+  public async request<T>(
+    method: string,
+    url: string,
+    data?: any,
+  ): Promise<ApiResponse<T>> {
     await this.initialize();
     try {
       const response = await this.api.request({
@@ -89,7 +97,11 @@ class ApiService {
       });
       return response.data;
     } catch (error: any) {
-      const apiError = new Error(error.response?.data?.error?.message || error.message || 'An error occurred');
+      const apiError = new Error(
+        error.response?.data?.error?.message ||
+          error.message ||
+          'An error occurred',
+      );
       (apiError as any).statusCode = error.response?.status || 500;
       (apiError as any).details = error.response?.data?.error?.details || null;
       throw apiError;
@@ -97,11 +109,15 @@ class ApiService {
   }
 
   // Auth endpoints
-  async login(credentials: LoginCredentials): Promise<ApiResponse<{ user: User; token: string }>> {
+  async login(
+    credentials: LoginCredentials,
+  ): Promise<ApiResponse<{ user: User; token: string }>> {
     return this.request('POST', '/auth/login', credentials);
   }
 
-  async register(data: RegisterData): Promise<ApiResponse<{ user: User; token: string }>> {
+  async register(
+    data: RegisterData,
+  ): Promise<ApiResponse<{ user: User; token: string }>> {
     return this.request('POST', '/auth/register', data);
   }
 
@@ -109,7 +125,10 @@ class ApiService {
     return this.request('GET', '/auth/profile');
   }
 
-  async changePassword(data: { currentPassword: string; newPassword: string }): Promise<ApiResponse<any>> {
+  async changePassword(data: {
+    currentPassword: string;
+    newPassword: string;
+  }): Promise<ApiResponse<any>> {
     return this.request('PUT', '/auth/password', data);
   }
 
@@ -117,13 +136,15 @@ class ApiService {
     return this.request('POST', '/auth/logout');
   }
 
-  async validateInvite(token: string): Promise<ApiResponse<{ valid: boolean }>> {
+  async validateInvite(
+    token: string,
+  ): Promise<ApiResponse<{ valid: boolean }>> {
     return this.request('GET', `/auth/invite/${token}`);
   }
 
   async updateProfilePicture(file: File): Promise<ApiResponse<{ user: User }>> {
     await this.initialize();
-    
+
     const formData = new FormData();
     formData.append('profilePicture', file);
 
@@ -135,7 +156,11 @@ class ApiService {
       });
       return response.data;
     } catch (error: any) {
-      const apiError = new Error(error.response?.data?.error?.message || error.message || 'Failed to update profile picture');
+      const apiError = new Error(
+        error.response?.data?.error?.message ||
+          error.message ||
+          'Failed to update profile picture',
+      );
       (apiError as any).statusCode = error.response?.status || 500;
       (apiError as any).details = error.response?.data?.error?.details || null;
       throw apiError;
@@ -147,21 +172,35 @@ class ApiService {
   }
 
   // Library endpoints
-  async getSongs(params?: { 
-    search?: string; 
-    artist?: number; 
-    album?: number; 
-    genre?: string; 
-    limit?: number; 
+  async getSongs(params?: {
+    search?: string;
+    artist?: number;
+    album?: number;
+    genre?: string;
+    limit?: number;
     offset?: number;
     includeYTMusic?: string;
-  }): Promise<ApiResponse<{ songs: Song[]; total: number; ytMusicResults?: any[]; hasYTMusicResults?: boolean; limit: number; offset: number }>> {
+  }): Promise<
+    ApiResponse<{
+      songs: Song[];
+      total: number;
+      ytMusicResults?: any[];
+      hasYTMusicResults?: boolean;
+      limit: number;
+      offset: number;
+    }>
+  > {
     // Filter out undefined values to prevent them from becoming "undefined" strings
-    const filteredParams = params ? Object.fromEntries(
-      Object.entries(params).filter(([_, value]) => value !== undefined)
-    ) : {};
+    const filteredParams = params
+      ? Object.fromEntries(
+          Object.entries(params).filter(([_, value]) => value !== undefined),
+        )
+      : {};
     const queryString = new URLSearchParams(filteredParams as any).toString();
-    return this.request('GET', `/library/songs${queryString ? `?${queryString}` : ''}`);
+    return this.request(
+      'GET',
+      `/library/songs${queryString ? `?${queryString}` : ''}`,
+    );
   }
 
   async getSong(id: number): Promise<ApiResponse<{ song: Song }>> {
@@ -172,20 +211,35 @@ class ApiService {
     return this.request('GET', `/library/songs/random?limit=${limit}`);
   }
 
-  async getArtists(search?: string): Promise<ApiResponse<{ artists: Artist[] }>> {
-    return this.request('GET', `/library/artists${search ? `?search=${search}` : ''}`);
+  async getArtists(
+    search?: string,
+  ): Promise<ApiResponse<{ artists: Artist[] }>> {
+    return this.request(
+      'GET',
+      `/library/artists${search ? `?search=${search}` : ''}`,
+    );
   }
 
-  async getArtist(id: number): Promise<ApiResponse<{ artist: Artist; songs: Song[]; albums: Album[] }>> {
+  async getArtist(
+    id: number,
+  ): Promise<ApiResponse<{ artist: Artist; songs: Song[]; albums: Album[] }>> {
     return this.request('GET', `/library/artists/${id}`);
   }
 
-  async getAlbums(params?: { search?: string; artist?: number }): Promise<ApiResponse<{ albums: Album[] }>> {
+  async getAlbums(params?: {
+    search?: string;
+    artist?: number;
+  }): Promise<ApiResponse<{ albums: Album[] }>> {
     const queryString = new URLSearchParams(params as any).toString();
-    return this.request('GET', `/library/albums${queryString ? `?${queryString}` : ''}`);
+    return this.request(
+      'GET',
+      `/library/albums${queryString ? `?${queryString}` : ''}`,
+    );
   }
 
-  async getAlbum(id: number): Promise<ApiResponse<{ album: Album; songs: Song[] }>> {
+  async getAlbum(
+    id: number,
+  ): Promise<ApiResponse<{ album: Album; songs: Song[] }>> {
     return this.request('GET', `/library/albums/${id}`);
   }
 
@@ -201,16 +255,26 @@ class ApiService {
     return this.request('GET', '/library/stats');
   }
 
-  async startLibraryScan(paths?: string[]): Promise<ApiResponse<{ scanId: number }>> {
+  async startLibraryScan(
+    paths?: string[],
+  ): Promise<ApiResponse<{ scanId: number }>> {
     return this.request('POST', '/library/scan', { paths });
   }
 
-  async getScanStatus(): Promise<ApiResponse<{ currentScan: ScanProgress | null; history: any[]; isScanning: boolean }>> {
+  async getScanStatus(): Promise<
+    ApiResponse<{
+      currentScan: ScanProgress | null;
+      history: any[];
+      isScanning: boolean;
+    }>
+  > {
     return this.request('GET', '/library/scan/status');
   }
 
   // Playlist endpoints
-  async createPlaylist(data: CreatePlaylistData): Promise<ApiResponse<{ playlist: Playlist }>> {
+  async createPlaylist(
+    data: CreatePlaylistData,
+  ): Promise<ApiResponse<{ playlist: Playlist }>> {
     return this.request('POST', '/playlists', data);
   }
 
@@ -226,11 +290,16 @@ class ApiService {
     return this.request('GET', '/playlists/all');
   }
 
-  async getPlaylist(id: number): Promise<ApiResponse<{ playlist: Playlist; songs: any[] }>> {
+  async getPlaylist(
+    id: number,
+  ): Promise<ApiResponse<{ playlist: Playlist; songs: any[] }>> {
     return this.request('GET', `/playlists/${id}`);
   }
 
-  async updatePlaylist(id: number, data: Partial<CreatePlaylistData>): Promise<ApiResponse<{ playlist: Playlist }>> {
+  async updatePlaylist(
+    id: number,
+    data: Partial<CreatePlaylistData>,
+  ): Promise<ApiResponse<{ playlist: Playlist }>> {
     return this.request('PUT', `/playlists/${id}`, data);
   }
 
@@ -238,30 +307,56 @@ class ApiService {
     return this.request('DELETE', `/playlists/${id}`);
   }
 
-  async addSongToPlaylist(playlistId: number, songId: number): Promise<ApiResponse<any>> {
+  async addSongToPlaylist(
+    playlistId: number,
+    songId: number,
+  ): Promise<ApiResponse<any>> {
     return this.request('POST', `/playlists/${playlistId}/songs`, { songId });
   }
 
-  async removeSongFromPlaylist(playlistId: number, songId: number): Promise<ApiResponse<any>> {
+  async removeSongFromPlaylist(
+    playlistId: number,
+    songId: number,
+  ): Promise<ApiResponse<any>> {
     return this.request('DELETE', `/playlists/${playlistId}/songs/${songId}`);
   }
 
-  async reorderPlaylistSongs(playlistId: number, songIds: number[]): Promise<ApiResponse<any>> {
-    return this.request('PUT', `/playlists/${playlistId}/songs/reorder`, { songIds });
+  async reorderPlaylistSongs(
+    playlistId: number,
+    songIds: number[],
+  ): Promise<ApiResponse<any>> {
+    return this.request('PUT', `/playlists/${playlistId}/songs/reorder`, {
+      songIds,
+    });
   }
 
-  async searchPlaylists(query: string): Promise<ApiResponse<{ playlists: Playlist[] }>> {
-    return this.request('GET', `/playlists/search?q=${encodeURIComponent(query)}`);
+  async searchPlaylists(
+    query: string,
+  ): Promise<ApiResponse<{ playlists: Playlist[] }>> {
+    return this.request(
+      'GET',
+      `/playlists/search?q=${encodeURIComponent(query)}`,
+    );
   }
 
   // History endpoints
-  async trackPlay(data: { songId: number; durationPlayed?: number; completed?: boolean }): Promise<ApiResponse<any>> {
+  async trackPlay(data: {
+    songId: number;
+    durationPlayed?: number;
+    completed?: boolean;
+  }): Promise<ApiResponse<any>> {
     return this.request('POST', '/history/track', data);
   }
 
-  async getUserHistory(params?: { limit?: number; offset?: number }): Promise<ApiResponse<{ history: ListenHistory[] }>> {
+  async getUserHistory(params?: {
+    limit?: number;
+    offset?: number;
+  }): Promise<ApiResponse<{ history: ListenHistory[] }>> {
     const queryString = new URLSearchParams(params as any).toString();
-    return this.request('GET', `/history${queryString ? `?${queryString}` : ''}`);
+    return this.request(
+      'GET',
+      `/history${queryString ? `?${queryString}` : ''}`,
+    );
   }
 
   async getRecentlyPlayed(limit = 20): Promise<ApiResponse<{ songs: Song[] }>> {
@@ -272,7 +367,14 @@ class ApiService {
     return this.request('GET', `/history/most-played?limit=${limit}`);
   }
 
-  async getListeningStats(): Promise<ApiResponse<{ stats: any; trends: any[]; topArtists: any[]; topAlbums: any[] }>> {
+  async getListeningStats(): Promise<
+    ApiResponse<{
+      stats: any;
+      trends: any[];
+      topArtists: any[];
+      topAlbums: any[];
+    }>
+  > {
     return this.request('GET', '/history/stats');
   }
 
@@ -289,7 +391,10 @@ class ApiService {
     return this.request('GET', '/admin/users');
   }
 
-  async updateUser(id: number, data: Partial<User>): Promise<ApiResponse<{ user: User }>> {
+  async updateUser(
+    id: number,
+    data: Partial<User>,
+  ): Promise<ApiResponse<{ user: User }>> {
     return this.request('PUT', `/admin/users/${id}`, data);
   }
 
@@ -301,7 +406,9 @@ class ApiService {
     return this.request('GET', `/admin/users/${id}/activity`);
   }
 
-  async createInvite(expiresInHours = 24): Promise<ApiResponse<{ invite: Invite }>> {
+  async createInvite(
+    expiresInHours = 24,
+  ): Promise<ApiResponse<{ invite: Invite }>> {
     return this.request('POST', '/admin/invites', { expiresInHours });
   }
 
@@ -317,13 +424,23 @@ class ApiService {
     return this.request('POST', '/admin/invites/cleanup');
   }
 
-  async getAllHistory(params?: { limit?: number; offset?: number; user?: number }): Promise<ApiResponse<{ history: ListenHistory[] }>> {
+  async getAllHistory(params?: {
+    limit?: number;
+    offset?: number;
+    user?: number;
+  }): Promise<ApiResponse<{ history: ListenHistory[] }>> {
     const queryString = new URLSearchParams(params as any).toString();
-    return this.request('GET', `/admin/history${queryString ? `?${queryString}` : ''}`);
+    return this.request(
+      'GET',
+      `/admin/history${queryString ? `?${queryString}` : ''}`,
+    );
   }
 
   async getAdminListeningStats(userId?: number): Promise<ApiResponse<any>> {
-    return this.request('GET', `/admin/stats/listening${userId ? `?user=${userId}` : ''}`);
+    return this.request(
+      'GET',
+      `/admin/stats/listening${userId ? `?user=${userId}` : ''}`,
+    );
   }
 
   async updateSong(id: number, data: FormData): Promise<ApiResponse<Song>> {
@@ -343,7 +460,10 @@ class ApiService {
     return this.request('POST', '/admin/library/paths', { path });
   }
 
-  async updateLibraryPath(id: number, data: { path?: string; is_active?: boolean }): Promise<ApiResponse<{ path: any }>> {
+  async updateLibraryPath(
+    id: number,
+    data: { path?: string; is_active?: boolean },
+  ): Promise<ApiResponse<{ path: any }>> {
     return this.request('PUT', `/admin/library/paths/${id}`, data);
   }
 
@@ -356,37 +476,70 @@ class ApiService {
     return this.request('GET', '/favorites');
   }
 
-  async toggleFavorite(songId: number): Promise<ApiResponse<{ songId: number; isFavorited: boolean; message: string }>> {
+  async toggleFavorite(
+    songId: number,
+  ): Promise<
+    ApiResponse<{ songId: number; isFavorited: boolean; message: string }>
+  > {
     return this.request('POST', `/favorites/${songId}/toggle`);
   }
 
   // YouTube search endpoints
-  async searchYouTubeImages(query: string, limit = 20): Promise<ApiResponse<{ data: any[]; count: number; query: string; limit: number }>> {
-    return this.request('GET', `/youtube/search?q=${encodeURIComponent(query)}&limit=${limit}`);
+  async searchYouTubeImages(
+    query: string,
+    limit = 20,
+  ): Promise<
+    ApiResponse<{ data: any[]; count: number; query: string; limit: number }>
+  > {
+    return this.request(
+      'GET',
+      `/youtube/search?q=${encodeURIComponent(query)}&limit=${limit}`,
+    );
   }
 
-  async searchYouTubeAlbumArtwork(artist: string, album: string): Promise<ApiResponse<{ data: any[]; count: number; artist: string; album: string }>> {
-    return this.request('GET', `/youtube/album-artwork?artist=${encodeURIComponent(artist)}&album=${encodeURIComponent(album)}`);
+  async searchYouTubeAlbumArtwork(
+    artist: string,
+    album: string,
+  ): Promise<
+    ApiResponse<{ data: any[]; count: number; artist: string; album: string }>
+  > {
+    return this.request(
+      'GET',
+      `/youtube/album-artwork?artist=${encodeURIComponent(artist)}&album=${encodeURIComponent(album)}`,
+    );
   }
 
-  async checkFavoriteStatus(songId: number): Promise<ApiResponse<{ songId: number; isFavorited: boolean }>> {
+  async checkFavoriteStatus(
+    songId: number,
+  ): Promise<ApiResponse<{ songId: number; isFavorited: boolean }>> {
     return this.request('GET', `/favorites/${songId}/status`);
   }
 
-  async addToFavorites(songId: number): Promise<ApiResponse<{ songId: number; isFavorited: boolean; message: string }>> {
+  async addToFavorites(
+    songId: number,
+  ): Promise<
+    ApiResponse<{ songId: number; isFavorited: boolean; message: string }>
+  > {
     return this.request('POST', `/favorites/${songId}`);
   }
 
-  async removeFromFavorites(songId: number): Promise<ApiResponse<{ songId: number; isFavorited: boolean; message: string }>> {
+  async removeFromFavorites(
+    songId: number,
+  ): Promise<
+    ApiResponse<{ songId: number; isFavorited: boolean; message: string }>
+  > {
     return this.request('DELETE', `/favorites/${songId}`);
   }
 
   // Sharing
-  async createShareToken(songId: number, options?: { maxAccess?: number; expiresInHours?: number }): Promise<ApiResponse<{ token: string; shareUrl: string }>> {
+  async createShareToken(
+    songId: number,
+    options?: { maxAccess?: number; expiresInHours?: number },
+  ): Promise<ApiResponse<{ token: string; shareUrl: string }>> {
     return this.request('POST', '/share/create', {
       songId,
       maxAccess: options?.maxAccess,
-      expiresInHours: options?.expiresInHours
+      expiresInHours: options?.expiresInHours,
     });
   }
 
@@ -395,28 +548,57 @@ class ApiService {
     return this.request('GET', '/admin/settings');
   }
 
-  async getSystemSetting(key: string): Promise<ApiResponse<{ key: string; value: string }>> {
+  async getSystemSetting(
+    key: string,
+  ): Promise<ApiResponse<{ key: string; value: string }>> {
     return this.request('GET', `/admin/settings/${key}`);
   }
 
-  async setSystemSetting(key: string, value: string | boolean): Promise<ApiResponse<{ key: string; value: string }>> {
-    return this.request('PUT', `/admin/settings/${key}`, { value: String(value) });
+  async setSystemSetting(
+    key: string,
+    value: string | boolean,
+  ): Promise<ApiResponse<{ key: string; value: string }>> {
+    return this.request('PUT', `/admin/settings/${key}`, {
+      value: String(value),
+    });
+  }
+
+  // Scan Options (Admin)
+  async getScanOptions(): Promise<
+    ApiResponse<{ scanOptions: { parallelism: number; batchSize: number } }>
+  > {
+    return this.request('GET', '/admin/scan-options');
+  }
+
+  async setScanOptions(options: {
+    parallelism?: number;
+    batchSize?: number;
+  }): Promise<ApiResponse<{ message: string }>> {
+    return this.request('PUT', '/admin/scan-options', options);
   }
 
   // Album following endpoints
-  async toggleAlbumFollow(albumId: number): Promise<ApiResponse<{ isFollowing: boolean; message: string }>> {
+  async toggleAlbumFollow(
+    albumId: number,
+  ): Promise<ApiResponse<{ isFollowing: boolean; message: string }>> {
     return this.request('POST', `/library/albums/${albumId}/toggle-follow`);
   }
 
-  async followAlbum(albumId: number): Promise<ApiResponse<{ message: string }>> {
+  async followAlbum(
+    albumId: number,
+  ): Promise<ApiResponse<{ message: string }>> {
     return this.request('POST', `/library/albums/${albumId}/follow`);
   }
 
-  async unfollowAlbum(albumId: number): Promise<ApiResponse<{ message: string }>> {
+  async unfollowAlbum(
+    albumId: number,
+  ): Promise<ApiResponse<{ message: string }>> {
     return this.request('DELETE', `/library/albums/${albumId}/follow`);
   }
 
-  async getAlbumFollowStatus(albumId: number): Promise<ApiResponse<{ isFollowing: boolean }>> {
+  async getAlbumFollowStatus(
+    albumId: number,
+  ): Promise<ApiResponse<{ isFollowing: boolean }>> {
     return this.request('GET', `/library/albums/${albumId}/follow-status`);
   }
 
@@ -429,19 +611,27 @@ class ApiService {
   }
 
   // Playlist following endpoints
-  async togglePlaylistFollow(playlistId: number): Promise<ApiResponse<{ isFollowing: boolean; message: string }>> {
+  async togglePlaylistFollow(
+    playlistId: number,
+  ): Promise<ApiResponse<{ isFollowing: boolean; message: string }>> {
     return this.request('POST', `/playlists/${playlistId}/toggle-follow`);
   }
 
-  async followPlaylist(playlistId: number): Promise<ApiResponse<{ message: string }>> {
+  async followPlaylist(
+    playlistId: number,
+  ): Promise<ApiResponse<{ message: string }>> {
     return this.request('POST', `/playlists/${playlistId}/follow`);
   }
 
-  async unfollowPlaylist(playlistId: number): Promise<ApiResponse<{ message: string }>> {
+  async unfollowPlaylist(
+    playlistId: number,
+  ): Promise<ApiResponse<{ message: string }>> {
     return this.request('DELETE', `/playlists/${playlistId}/follow`);
   }
 
-  async getPlaylistFollowStatus(playlistId: number): Promise<ApiResponse<{ isFollowing: boolean }>> {
+  async getPlaylistFollowStatus(
+    playlistId: number,
+  ): Promise<ApiResponse<{ isFollowing: boolean }>> {
     return this.request('GET', `/playlists/${playlistId}/follow-status`);
   }
 
@@ -449,45 +639,62 @@ class ApiService {
     return this.request('GET', `/playlists/followed`);
   }
 
-  async getPlaylistsWithFollowStatus(): Promise<ApiResponse<{ playlists: any[] }>> {
+  async getPlaylistsWithFollowStatus(): Promise<
+    ApiResponse<{ playlists: any[] }>
+  > {
     return this.request('GET', `/playlists/with-follow-status`);
   }
 
   // Admin profile picture management
-  async adminUpdateUserProfilePicture(userId: number, file: File): Promise<ApiResponse<{ user: User }>> {
+  async adminUpdateUserProfilePicture(
+    userId: number,
+    file: File,
+  ): Promise<ApiResponse<{ user: User }>> {
     await this.initialize();
-    
+
     const formData = new FormData();
     formData.append('profilePicture', file);
 
     try {
-      const response = await this.api.put(`/admin/users/${userId}/profile-picture`, formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data',
+      const response = await this.api.put(
+        `/admin/users/${userId}/profile-picture`,
+        formData,
+        {
+          headers: {
+            'Content-Type': 'multipart/form-data',
+          },
         },
-      });
+      );
       return response.data;
     } catch (error: any) {
-      const apiError = new Error(error.response?.data?.error?.message || error.message || 'Failed to update user profile picture');
+      const apiError = new Error(
+        error.response?.data?.error?.message ||
+          error.message ||
+          'Failed to update user profile picture',
+      );
       (apiError as any).statusCode = error.response?.status || 500;
       (apiError as any).details = error.response?.data?.error?.details || null;
       throw apiError;
     }
   }
 
-  async adminDeleteUserProfilePicture(userId: number): Promise<ApiResponse<{ user: User }>> {
+  async adminDeleteUserProfilePicture(
+    userId: number,
+  ): Promise<ApiResponse<{ user: User }>> {
     return this.request('DELETE', `/admin/users/${userId}/profile-picture`);
   }
 
   // Stream endpoint
   getStreamUrl(songId: number): string {
     // In development, use relative URLs to leverage proxy configuration
-    const isDevelopment = process.env.NODE_ENV === 'development' || window.location.hostname === 'localhost';
-    
+    const isDevelopment =
+      process.env.NODE_ENV === 'development' ||
+      window.location.hostname === 'localhost';
+
     if (isDevelopment) {
       return `/api/stream/${songId}`;
     }
-    
+
     try {
       const baseUrl = getBaseUrl();
       return `${baseUrl}/api/stream/${songId}`;
@@ -499,14 +706,16 @@ class ApiService {
 
   getArtworkUrl(path: string): string {
     if (!path) return '';
-    
+
     // In development, use relative URLs to leverage proxy configuration
-    const isDevelopment = process.env.NODE_ENV === 'development' || window.location.hostname === 'localhost';
-    
+    const isDevelopment =
+      process.env.NODE_ENV === 'development' ||
+      window.location.hostname === 'localhost';
+
     if (isDevelopment) {
       return path; // path already includes /uploads/artwork/...
     }
-    
+
     try {
       const baseUrl = getBaseUrl();
       return `${baseUrl}${path}`;
@@ -517,16 +726,27 @@ class ApiService {
   }
 
   // YouTube Music endpoints
-  async searchYTMusic(query: string): Promise<ApiResponse<{ results: any[]; source: string }>> {
+  async searchYTMusic(
+    query: string,
+  ): Promise<ApiResponse<{ results: any[]; source: string }>> {
     const queryString = new URLSearchParams({ query }).toString();
     return this.request('GET', `/ytmusic/search?${queryString}`);
   }
 
-  async downloadYTMusicSong(videoId: string): Promise<ApiResponse<{ downloadId: string; message: string }>> {
+  async downloadYTMusicSong(
+    videoId: string,
+  ): Promise<ApiResponse<{ downloadId: string; message: string }>> {
     return this.request('POST', `/ytmusic/download/${videoId}`);
   }
 
-  async getDownloadProgress(downloadId: string): Promise<ApiResponse<{ id: string; status: string; progress: number; error?: string }>> {
+  async getDownloadProgress(downloadId: string): Promise<
+    ApiResponse<{
+      id: string;
+      status: string;
+      progress: number;
+      error?: string;
+    }>
+  > {
     return this.request('GET', `/ytmusic/download/${downloadId}/progress`);
   }
 

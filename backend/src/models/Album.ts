@@ -1,4 +1,4 @@
-import Database from '../config/database';
+import Database from '../config/database.js';
 
 export interface Album {
   id: number;
@@ -27,23 +27,28 @@ export class AlbumModel {
   private db = Database;
 
   async findById(id: number): Promise<Album | null> {
-    return await this.db.get<Album>(
-      'SELECT * FROM albums WHERE id = ?',
-      [id]
-    );
+    return await this.db.get<Album>('SELECT * FROM albums WHERE id = ?', [id]);
   }
 
-  async findByTitleAndArtist(title: string, artistId: number): Promise<Album | null> {
+  async findByTitleAndArtist(
+    title: string,
+    artistId: number,
+  ): Promise<Album | null> {
     return await this.db.get<Album>(
       'SELECT * FROM albums WHERE title = ? AND artist_id = ?',
-      [title, artistId]
+      [title, artistId],
     );
   }
 
   async create(albumData: CreateAlbumData): Promise<Album> {
     const result = await this.db.run(
       'INSERT INTO albums (title, artist_id, release_year, artwork_path) VALUES (?, ?, ?, ?)',
-      [albumData.title, albumData.artist_id, albumData.release_year || null, albumData.artwork_path || null]
+      [
+        albumData.title,
+        albumData.artist_id,
+        albumData.release_year || null,
+        albumData.artwork_path || null,
+      ],
     );
 
     const album = await this.findById(result.lastID!);
@@ -54,14 +59,18 @@ export class AlbumModel {
     return album;
   }
 
-  async findOrCreate(title: string, artistId: number, releaseYear?: number): Promise<Album> {
+  async findOrCreate(
+    title: string,
+    artistId: number,
+    releaseYear?: number,
+  ): Promise<Album> {
     let album = await this.findByTitleAndArtist(title, artistId);
-    
+
     if (!album) {
       album = await this.create({
         title,
         artist_id: artistId,
-        release_year: releaseYear
+        release_year: releaseYear,
       });
     }
 
@@ -70,7 +79,7 @@ export class AlbumModel {
 
   async findWithDetails(id: number): Promise<AlbumWithDetails | null> {
     return await this.db.get<AlbumWithDetails>(
-      `SELECT 
+      `SELECT
         al.*,
         a.name as artist_name,
         COUNT(s.id) as song_count,
@@ -80,13 +89,13 @@ export class AlbumModel {
        LEFT JOIN songs s ON al.id = s.album_id
        WHERE al.id = ?
        GROUP BY al.id`,
-      [id]
+      [id],
     );
   }
 
   async getAllWithDetails(): Promise<AlbumWithDetails[]> {
     return await this.db.query<AlbumWithDetails>(
-      `SELECT 
+      `SELECT
         al.*,
         a.name as artist_name,
         COUNT(s.id) as song_count,
@@ -95,13 +104,13 @@ export class AlbumModel {
        JOIN artists a ON al.artist_id = a.id
        LEFT JOIN songs s ON al.id = s.album_id
        GROUP BY al.id
-       ORDER BY a.name, al.title`
+       ORDER BY a.name, al.title`,
     );
   }
 
   async getAlbumsByArtist(artistId: number): Promise<AlbumWithDetails[]> {
     return await this.db.query<AlbumWithDetails>(
-      `SELECT 
+      `SELECT
         al.*,
         a.name as artist_name,
         COUNT(s.id) as song_count,
@@ -112,14 +121,14 @@ export class AlbumModel {
        WHERE al.artist_id = ?
        GROUP BY al.id
        ORDER BY al.release_year DESC, al.title`,
-      [artistId]
+      [artistId],
     );
   }
 
   async search(query: string): Promise<AlbumWithDetails[]> {
     const searchTerm = `%${query}%`;
     return await this.db.query<AlbumWithDetails>(
-      `SELECT 
+      `SELECT
         al.*,
         a.name as artist_name,
         COUNT(s.id) as song_count,
@@ -130,25 +139,27 @@ export class AlbumModel {
        WHERE al.title LIKE ? OR a.name LIKE ?
        GROUP BY al.id
        ORDER BY a.name, al.title`,
-      [searchTerm, searchTerm]
+      [searchTerm, searchTerm],
     );
   }
 
   async updateArtwork(id: number, artworkPath: string): Promise<void> {
     await this.db.run(
       'UPDATE albums SET artwork_path = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?',
-      [artworkPath, id]
+      [artworkPath, id],
     );
   }
 
   async update(id: number, updates: Partial<CreateAlbumData>): Promise<void> {
-    const fields = Object.keys(updates).map(key => `${key} = ?`).join(', ');
+    const fields = Object.keys(updates)
+      .map((key) => `${key} = ?`)
+      .join(', ');
     const values = Object.values(updates);
     values.push(id);
 
     await this.db.run(
       `UPDATE albums SET ${fields}, updated_at = CURRENT_TIMESTAMP WHERE id = ?`,
-      values
+      values,
     );
   }
 
@@ -158,14 +169,14 @@ export class AlbumModel {
 
   async getAlbumCount(): Promise<number> {
     const result = await this.db.get<{ count: number }>(
-      'SELECT COUNT(*) as count FROM albums'
+      'SELECT COUNT(*) as count FROM albums',
     );
     return result!.count;
   }
 
   async getRecentAlbums(limit: number = 20): Promise<AlbumWithDetails[]> {
     return await this.db.query<AlbumWithDetails>(
-      `SELECT 
+      `SELECT
         al.*,
         a.name as artist_name,
         COUNT(s.id) as song_count,
@@ -176,7 +187,7 @@ export class AlbumModel {
        GROUP BY al.id
        ORDER BY al.created_at DESC
        LIMIT ?`,
-      [limit]
+      [limit],
     );
   }
 }

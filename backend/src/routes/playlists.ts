@@ -1,24 +1,24 @@
 import { Router } from 'express';
 import {
-  createPlaylist,
-  getUserPlaylists,
-  getPublicPlaylists,
-  getAllPlaylists,
-  getPlaylist,
-  updatePlaylist,
-  deletePlaylist,
   addSongToPlaylist,
+  createPlaylist,
+  deletePlaylist,
+  followPlaylist,
+  getAllPlaylists,
+  getFollowedPlaylists,
+  getPlaylist,
+  getPlaylistFollowStatus,
+  getPlaylistsWithFollowStatus,
+  getPublicPlaylists,
+  getUserPlaylists,
   removeSongFromPlaylist,
   reorderPlaylistSongs,
   searchPlaylists,
-  followPlaylist,
-  unfollowPlaylist,
   togglePlaylistFollow,
-  getFollowedPlaylists,
-  getPlaylistsWithFollowStatus,
-  getPlaylistFollowStatus
-} from '../controllers/playlistController';
-import { authenticateToken, optionalAuth } from '../middleware/auth';
+  unfollowPlaylist,
+  updatePlaylist,
+} from '../controllers/playlistController.js';
+import { authenticateToken, optionalAuth } from '../middleware/auth.js';
 
 const router = Router();
 
@@ -29,7 +29,11 @@ router.get('/public', getPublicPlaylists);
 router.get('/all', authenticateToken, getAllPlaylists);
 router.get('/search', optionalAuth, searchPlaylists);
 router.get('/followed', authenticateToken, getFollowedPlaylists);
-router.get('/with-follow-status', authenticateToken, getPlaylistsWithFollowStatus);
+router.get(
+  '/with-follow-status',
+  authenticateToken,
+  getPlaylistsWithFollowStatus,
+);
 
 router.get('/:id', optionalAuth, getPlaylist);
 router.put('/:id', authenticateToken, updatePlaylist);

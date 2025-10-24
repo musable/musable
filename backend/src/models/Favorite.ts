@@ -1,5 +1,5 @@
-import Database from '../config/database';
-import { SongWithDetails } from './Song';
+import Database from '../config/database.js';
+import type { SongWithDetails } from './Song.js';
 
 export interface Favorite {
   id: number;
@@ -9,7 +9,10 @@ export interface Favorite {
 }
 
 export class FavoriteModel {
-  static async addToFavorites(userId: number, songId: number): Promise<boolean> {
+  static async addToFavorites(
+    userId: number,
+    songId: number,
+  ): Promise<boolean> {
     try {
       const stmt = `INSERT INTO favorites (user_id, song_id) VALUES (?, ?)`;
       await Database.run(stmt, [userId, songId]);
@@ -22,7 +25,10 @@ export class FavoriteModel {
     }
   }
 
-  static async removeFromFavorites(userId: number, songId: number): Promise<boolean> {
+  static async removeFromFavorites(
+    userId: number,
+    songId: number,
+  ): Promise<boolean> {
     try {
       const stmt = `DELETE FROM favorites WHERE user_id = ? AND song_id = ?`;
       const result = await Database.run(stmt, [userId, songId]);
@@ -45,7 +51,7 @@ export class FavoriteModel {
   static async getUserFavorites(userId: number): Promise<SongWithDetails[]> {
     try {
       const stmt = `
-        SELECT 
+        SELECT
           s.*,
           a.name as artist_name,
           al.title as album_title,
@@ -75,15 +81,21 @@ export class FavoriteModel {
     }
   }
 
-  static async toggleFavorite(userId: number, songId: number): Promise<{ isFavorited: boolean }> {
+  static async toggleFavorite(
+    userId: number,
+    songId: number,
+  ): Promise<{ isFavorited: boolean }> {
     try {
-      const isCurrentlyFavorited = await this.isFavorited(userId, songId);
-      
+      const isCurrentlyFavorited = await FavoriteModel.isFavorited(
+        userId,
+        songId,
+      );
+
       if (isCurrentlyFavorited) {
-        await this.removeFromFavorites(userId, songId);
+        await FavoriteModel.removeFromFavorites(userId, songId);
         return { isFavorited: false };
       } else {
-        await this.addToFavorites(userId, songId);
+        await FavoriteModel.addToFavorites(userId, songId);
         return { isFavorited: true };
       }
     } catch (error) {

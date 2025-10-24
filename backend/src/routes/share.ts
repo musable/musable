@@ -1,6 +1,9 @@
 import { Router } from 'express';
-import { getSharedSong, createShareToken } from '../controllers/shareController';
-import { authenticateToken } from '../middleware/auth';
+import {
+  createShareToken,
+  getSharedSong,
+} from '../controllers/shareController.js';
+import { authenticateToken } from '../middleware/auth.js';
 
 const router = Router();
 
