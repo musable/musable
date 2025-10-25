@@ -1,4 +1,4 @@
-import Database from '../config/database';
+import Database from '../config/database.js';
 
 export interface PlaylistFollow {
   id: number;
@@ -28,20 +28,23 @@ export class PlaylistFollowsModel {
   async followPlaylist(userId: number, playlistId: number): Promise<void> {
     await this.db.run(
       'INSERT OR IGNORE INTO playlist_follows (user_id, playlist_id) VALUES (?, ?)',
-      [userId, playlistId]
+      [userId, playlistId],
     );
   }
 
   async unfollowPlaylist(userId: number, playlistId: number): Promise<void> {
     await this.db.run(
       'DELETE FROM playlist_follows WHERE user_id = ? AND playlist_id = ?',
-      [userId, playlistId]
+      [userId, playlistId],
     );
   }
 
-  async togglePlaylistFollow(userId: number, playlistId: number): Promise<{ isFollowing: boolean }> {
+  async togglePlaylistFollow(
+    userId: number,
+    playlistId: number,
+  ): Promise<{ isFollowing: boolean }> {
     const isFollowing = await this.isFollowingPlaylist(userId, playlistId);
-    
+
     if (isFollowing) {
       await this.unfollowPlaylist(userId, playlistId);
       return { isFollowing: false };
@@ -51,18 +54,23 @@ export class PlaylistFollowsModel {
     }
   }
 
-  async isFollowingPlaylist(userId: number, playlistId: number): Promise<boolean> {
+  async isFollowingPlaylist(
+    userId: number,
+    playlistId: number,
+  ): Promise<boolean> {
     const result = await this.db.get<{ count: number }>(
       'SELECT COUNT(*) as count FROM playlist_follows WHERE user_id = ? AND playlist_id = ?',
-      [userId, playlistId]
+      [userId, playlistId],
     );
-    
+
     return (result?.count || 0) > 0;
   }
 
-  async getUserFollowedPlaylists(userId: number): Promise<PlaylistWithFollowStatus[]> {
+  async getUserFollowedPlaylists(
+    userId: number,
+  ): Promise<PlaylistWithFollowStatus[]> {
     return await this.db.query<PlaylistWithFollowStatus>(
-      `SELECT 
+      `SELECT
         p.id,
         p.name,
         p.description,
@@ -83,16 +91,23 @@ export class PlaylistFollowsModel {
        WHERE pf.user_id = ?
        GROUP BY p.id, p.name, p.description, p.user_id, p.is_public, p.created_at, p.updated_at, u.username, pf.followed_at
        ORDER BY pf.followed_at DESC`,
-      [userId]
+      [userId],
     );
   }
 
-  async getPlaylistsWithFollowStatus(userId: number, includeOwn: boolean = true, limit: number = 50, offset: number = 0): Promise<PlaylistWithFollowStatus[]> {
+  async getPlaylistsWithFollowStatus(
+    userId: number,
+    includeOwn: boolean = true,
+    limit: number = 50,
+    offset: number = 0,
+  ): Promise<PlaylistWithFollowStatus[]> {
     const whereClause = includeOwn ? '' : 'WHERE p.user_id != ?';
-    const params = includeOwn ? [userId, limit, offset] : [userId, userId, limit, offset];
-    
+    const params = includeOwn
+      ? [userId, limit, offset]
+      : [userId, userId, limit, offset];
+
     return await this.db.query<PlaylistWithFollowStatus>(
-      `SELECT 
+      `SELECT
         p.id,
         p.name,
         p.description,
@@ -114,15 +129,19 @@ export class PlaylistFollowsModel {
        GROUP BY p.id, p.name, p.description, p.user_id, p.is_public, p.created_at, p.updated_at, u.username, pf.followed_at
        ORDER BY p.updated_at DESC
        LIMIT ? OFFSET ?`,
-      params
+      params,
     );
   }
 
-  async searchPlaylistsWithFollowStatus(userId: number, query: string, limit: number = 50): Promise<PlaylistWithFollowStatus[]> {
+  async searchPlaylistsWithFollowStatus(
+    userId: number,
+    query: string,
+    limit: number = 50,
+  ): Promise<PlaylistWithFollowStatus[]> {
     const searchTerm = `%${query}%`;
-    
+
     return await this.db.query<PlaylistWithFollowStatus>(
-      `SELECT 
+      `SELECT
         p.id,
         p.name,
         p.description,
@@ -144,13 +163,21 @@ export class PlaylistFollowsModel {
        GROUP BY p.id, p.name, p.description, p.user_id, p.is_public, p.created_at, p.updated_at, u.username, pf.followed_at
        ORDER BY p.name
        LIMIT ?`,
-      [userId, searchTerm, searchTerm, searchTerm, limit]
+      [userId, searchTerm, searchTerm, searchTerm, limit],
     );
   }
 
-  async getFollowStats(userId: number): Promise<{ followedPlaylists: number; totalSongs: number; totalDuration: number }> {
-    const result = await this.db.get<{ followedPlaylists: number; totalSongs: number; totalDuration: number }>(
-      `SELECT 
+  async getFollowStats(userId: number): Promise<{
+    followedPlaylists: number;
+    totalSongs: number;
+    totalDuration: number;
+  }> {
+    const result = await this.db.get<{
+      followedPlaylists: number;
+      totalSongs: number;
+      totalDuration: number;
+    }>(
+      `SELECT
         COUNT(DISTINCT p.id) as followedPlaylists,
         COUNT(ps.song_id) as totalSongs,
         COALESCE(SUM(s.duration), 0) as totalDuration
@@ -159,15 +186,18 @@ export class PlaylistFollowsModel {
        LEFT JOIN playlist_songs ps ON p.id = ps.playlist_id
        LEFT JOIN songs s ON ps.song_id = s.id
        WHERE pf.user_id = ?`,
-      [userId]
+      [userId],
     );
-    
+
     return result || { followedPlaylists: 0, totalSongs: 0, totalDuration: 0 };
   }
 
-  async getRecentlyFollowedPlaylists(userId: number, limit: number = 10): Promise<PlaylistWithFollowStatus[]> {
+  async getRecentlyFollowedPlaylists(
+    userId: number,
+    limit: number = 10,
+  ): Promise<PlaylistWithFollowStatus[]> {
     return await this.db.query<PlaylistWithFollowStatus>(
-      `SELECT 
+      `SELECT
         p.id,
         p.name,
         p.description,
@@ -189,7 +219,7 @@ export class PlaylistFollowsModel {
        GROUP BY p.id, p.name, p.description, p.user_id, p.is_public, p.created_at, p.updated_at, u.username, pf.followed_at
        ORDER BY pf.followed_at DESC
        LIMIT ?`,
-      [userId, limit]
+      [userId, limit],
     );
   }
 }

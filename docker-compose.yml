@@ -50,6 +50,9 @@ services:
       # Logging
       - LOG_LEVEL=info
 
+      # Last.fm API Key; uncomment and provide to get 'top tracks' features
+      - LASTFM_API_KEY=${LASTFM_API_KEY}
+
     volumes:
       # Mount your existing music library (read-only for safety)
       # Change the path before the colon to your music folder

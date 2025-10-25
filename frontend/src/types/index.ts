@@ -167,6 +167,45 @@ export interface PaginatedResponse<T> {
   hasMore: boolean;
 }
 
+// Top tracks/types from backend
+export interface TopItemRecord {
+  id: number;
+  cache_id: number;
+  subject_type: string;
+  subject_id?: number | null;
+  subject_value?: string | null;
+  item_type: string;
+  rank: number;
+  title?: string | null;
+  external_id?: string | null;
+  playcount?: number | null;
+  listeners?: number | null;
+  score?: number | null;
+  url?: string | null;
+  duration?: number | null;
+  matched_song_id?: number | null;
+  matched_artist_id?: number | null;
+  matched_album_id?: number | null;
+  match_confidence?: number | null;
+  match_method?: string | null;
+  created_at: string;
+}
+
+// Library management types
+export interface LibraryPath {
+  id: number;
+  path: string;
+  is_active: boolean;
+  created_at?: string;
+  updated_at?: string;
+}
+
+// System settings types
+export interface SystemSettingsData {
+  public_sharing_enabled?: boolean;
+  [key: string]: unknown;
+}
+
 // Admin types
 export interface DashboardStats {
   library: {

@@ -1,4 +1,4 @@
-import Database from '../config/database';
+import Database from '../config/database.js';
 
 export interface Artist {
   id: number;
@@ -16,24 +16,21 @@ export class ArtistModel {
   private db = Database;
 
   async findByName(name: string): Promise<Artist | null> {
-    return await this.db.get<Artist>(
-      'SELECT * FROM artists WHERE name = ?',
-      [name]
-    );
+    return await this.db.get<Artist>('SELECT * FROM artists WHERE name = ?', [
+      name,
+    ]);
   }
 
   async findById(id: number): Promise<Artist | null> {
-    return await this.db.get<Artist>(
-      'SELECT * FROM artists WHERE id = ?',
-      [id]
-    );
+    return await this.db.get<Artist>('SELECT * FROM artists WHERE id = ?', [
+      id,
+    ]);
   }
 
   async create(name: string): Promise<Artist> {
-    const result = await this.db.run(
-      'INSERT INTO artists (name) VALUES (?)',
-      [name]
-    );
+    const result = await this.db.run('INSERT INTO artists (name) VALUES (?)', [
+      name,
+    ]);
 
     const artist = await this.findById(result.lastID!);
     if (!artist) {
@@ -45,7 +42,7 @@ export class ArtistModel {
 
   async findOrCreate(name: string): Promise<Artist> {
     let artist = await this.findByName(name);
-    
+
     if (!artist) {
       artist = await this.create(name);
     }
@@ -55,7 +52,7 @@ export class ArtistModel {
 
   async getAllWithStats(): Promise<ArtistWithStats[]> {
     return await this.db.query<ArtistWithStats>(
-      `SELECT 
+      `SELECT
         a.*,
         COUNT(DISTINCT s.id) as song_count,
         COUNT(DISTINCT al.id) as album_count
@@ -63,7 +60,7 @@ export class ArtistModel {
        LEFT JOIN songs s ON a.id = s.artist_id
        LEFT JOIN albums al ON a.id = al.artist_id
        GROUP BY a.id
-       ORDER BY a.name`
+       ORDER BY a.name`,
     );
   }
 
@@ -71,14 +68,14 @@ export class ArtistModel {
     const searchTerm = `%${query}%`;
     return await this.db.query<Artist>(
       'SELECT * FROM artists WHERE name LIKE ? ORDER BY name',
-      [searchTerm]
+      [searchTerm],
     );
   }
 
   async update(id: number, name: string): Promise<void> {
     await this.db.run(
       'UPDATE artists SET name = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?',
-      [name, id]
+      [name, id],
     );
   }
 
@@ -88,7 +85,7 @@ export class ArtistModel {
 
   async getArtistCount(): Promise<number> {
     const result = await this.db.get<{ count: number }>(
-      'SELECT COUNT(*) as count FROM artists'
+      'SELECT COUNT(*) as count FROM artists',
     );
     return result!.count;
   }

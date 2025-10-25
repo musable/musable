@@ -1,24 +1,16 @@
-import React, { useEffect, useState } from 'react';
 import {
-  MusicalNoteIcon,
+  ArrowPathIcon,
+  CheckCircleIcon,
   FolderIcon,
+  MagnifyingGlassIcon,
+  MusicalNoteIcon,
   PlusIcon,
   TrashIcon,
-  MagnifyingGlassIcon,
-  ArrowPathIcon,
-  CheckCircleIcon
 } from '@heroicons/react/24/outline';
-import { apiService } from '../../services/api';
-import { Song, ScanProgress } from '../../types';
 import clsx from 'clsx';
-
-interface LibraryPath {
-  id: number;
-  path: string;
-  is_active: boolean;
-  created_at?: string;
-  updated_at?: string;
-}
+import React, { useCallback, useEffect, useState } from 'react';
+import { apiService } from '../../services/api';
+import { LibraryPath, ScanProgress, Song } from '../../types';
 
 const LibraryManagementTab: React.FC = () => {
   const [songs, setSongs] = useState<Song[]>([]);
@@ -28,17 +20,75 @@ const LibraryManagementTab: React.FC = () => {
   const [newPath, setNewPath] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   const [error, setError] = useState<string | null>(null);
-  
+
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
   const [totalSongs, setTotalSongs] = useState(0);
   const [loadingSongs, setLoadingSongs] = useState(false);
   const songsPerPage = 50;
 
+  const fetchLibraryData = useCallback(async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const pathsResponse = await apiService.getLibraryPaths();
+      setLibraryPaths(pathsResponse.data.paths);
+      // Fetch songs will be called by the useEffect
+    } catch (err: any) {
+      console.error('Failed to fetch library data:', err);
+      setError(err.message || 'Failed to load library data');
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  const fetchSongs = useCallback(
+    async (page: number = 1, search: string = '') => {
+      try {
+        setLoadingSongs(true);
+        const offset = (page - 1) * songsPerPage;
+        const songsResponse = await apiService.getSongs({
+          limit: songsPerPage,
+          offset,
+          search: search || undefined,
+        });
+        setSongs(songsResponse.data.songs);
+        setTotalSongs(songsResponse.data.total);
+        setCurrentPage(page);
+      } catch (err: any) {
+        console.error('Failed to fetch songs:', err);
+        setError(err.message || 'Failed to load songs');
+      } finally {
+        setLoadingSongs(false);
+      }
+    },
+    [],
+  );
+
+  const fetchScanStatus = useCallback(async () => {
+    try {
+      const response = await apiService.getScanStatus();
+      const newScanStatus = response.data.currentScan;
+
+      // Check if scan just completed
+      if (
+        scanStatus?.status === 'running' &&
+        (!newScanStatus || newScanStatus.status !== 'running')
+      ) {
+        // Scan completed, refresh songs list
+        await fetchSongs(currentPage, searchQuery);
+      }
+
+      setScanStatus(newScanStatus);
+    } catch (err: any) {
+      console.error('Failed to fetch scan status:', err);
+    }
+  }, [scanStatus?.status, currentPage, searchQuery, fetchSongs]);
+
   useEffect(() => {
     fetchLibraryData();
     fetchScanStatus();
-    
+
     const interval = setInterval(() => {
       if (scanStatus?.status === 'running') {
         fetchScanStatus();
@@ -47,8 +97,14 @@ const LibraryManagementTab: React.FC = () => {
     }, 1000); // Reduced to 1 second for better real-time feel
 
     return () => clearInterval(interval);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [scanStatus?.status]);
+  }, [fetchLibraryData, fetchScanStatus, scanStatus?.status]);
+
+  useEffect(() => {
+    // Fetch songs after library data is loaded
+    if (libraryPaths.length > 0) {
+      fetchSongs(1, '');
+    }
+  }, [libraryPaths, fetchSongs]);
 
   useEffect(() => {
     // Reset to page 1 when search query changes
@@ -56,66 +112,14 @@ const LibraryManagementTab: React.FC = () => {
       setCurrentPage(1);
       return; // Let the currentPage effect handle the API call
     }
-    
+
     // Debounced search effect
     const timeoutId = setTimeout(() => {
       fetchSongs(currentPage, searchQuery);
     }, 500);
 
     return () => clearTimeout(timeoutId);
-  }, [searchQuery, currentPage]);
-
-  const fetchLibraryData = async () => {
-    try {
-      setLoading(true);
-      setError(null);
-      const pathsResponse = await apiService.getLibraryPaths();
-      setLibraryPaths(pathsResponse.data.paths);
-      await fetchSongs();
-    } catch (err: any) {
-      console.error('Failed to fetch library data:', err);
-      setError(err.message || 'Failed to load library data');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const fetchSongs = async (page: number = 1, search: string = '') => {
-    try {
-      setLoadingSongs(true);
-      const offset = (page - 1) * songsPerPage;
-      const songsResponse = await apiService.getSongs({ 
-        limit: songsPerPage, 
-        offset,
-        search: search || undefined
-      });
-      setSongs(songsResponse.data.songs);
-      setTotalSongs(songsResponse.data.total);
-      setCurrentPage(page);
-    } catch (err: any) {
-      console.error('Failed to fetch songs:', err);
-      setError(err.message || 'Failed to load songs');
-    } finally {
-      setLoadingSongs(false);
-    }
-  };
-
-  const fetchScanStatus = async () => {
-    try {
-      const response = await apiService.getScanStatus();
-      const newScanStatus = response.data.currentScan;
-      
-      // Check if scan just completed
-      if (scanStatus?.status === 'running' && (!newScanStatus || newScanStatus.status !== 'running')) {
-        // Scan completed, refresh songs list
-        await fetchSongs(currentPage, searchQuery);
-      }
-      
-      setScanStatus(newScanStatus);
-    } catch (err: any) {
-      console.error('Failed to fetch scan status:', err);
-    }
-  };
+  }, [searchQuery, currentPage, fetchSongs]);
 
   const handleStartScan = async (paths?: string[]) => {
     try {
@@ -162,7 +166,7 @@ const LibraryManagementTab: React.FC = () => {
 
   const handleTogglePath = async (id: number) => {
     try {
-      const path = libraryPaths.find(p => p.id === id);
+      const path = libraryPaths.find((p) => p.id === id);
       if (path) {
         await apiService.updateLibraryPath(id, { is_active: !path.is_active });
         // Only refresh library paths, not songs
@@ -177,7 +181,11 @@ const LibraryManagementTab: React.FC = () => {
   };
 
   const handleDeleteSong = async (songId: number) => {
-    if (!window.confirm('Are you sure you want to delete this song? This will remove it from the database but not delete the file.')) {
+    if (
+      !window.confirm(
+        'Are you sure you want to delete this song? This will remove it from the database but not delete the file.',
+      )
+    ) {
       return;
     }
 
@@ -211,8 +219,12 @@ const LibraryManagementTab: React.FC = () => {
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-2xl font-bold text-white mb-2">Library Management</h2>
-        <p className="text-gray-400">Manage music library paths and scan for new content</p>
+        <h2 className="text-2xl font-bold text-white mb-2">
+          Library Management
+        </h2>
+        <p className="text-gray-400">
+          Manage music library paths and scan for new content
+        </p>
       </div>
 
       {error && (
@@ -229,16 +241,22 @@ const LibraryManagementTab: React.FC = () => {
             Library Paths
           </h3>
           <button
+            type="button"
             onClick={() => handleStartScan()}
             disabled={scanStatus?.status === 'running'}
             className={clsx(
               'flex items-center px-4 py-2 rounded-lg transition-colors',
               scanStatus?.status === 'running'
                 ? 'bg-gray-600 text-gray-400 cursor-not-allowed'
-                : 'bg-primary text-white hover:bg-primary/90'
+                : 'bg-primary text-white hover:bg-primary/90',
             )}
           >
-            <ArrowPathIcon className={clsx('w-4 h-4 mr-2', scanStatus?.status === 'running' && 'animate-spin')} />
+            <ArrowPathIcon
+              className={clsx(
+                'w-4 h-4 mr-2',
+                scanStatus?.status === 'running' && 'animate-spin',
+              )}
+            />
             {scanStatus?.status === 'running' ? 'Scanning...' : 'Scan Library'}
           </button>
         </div>
@@ -254,6 +272,7 @@ const LibraryManagementTab: React.FC = () => {
             onKeyPress={(e) => e.key === 'Enter' && handleAddPath()}
           />
           <button
+            type="button"
             onClick={handleAddPath}
             disabled={!newPath.trim()}
             className="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
@@ -267,7 +286,9 @@ const LibraryManagementTab: React.FC = () => {
           <div className="mb-4 p-4 bg-yellow-900/20 border border-yellow-500 rounded-lg">
             <div className="flex items-center mb-3">
               <ArrowPathIcon className="w-5 h-5 text-yellow-400 animate-spin mr-2" />
-              <span className="text-yellow-400 font-medium">Scanning Library...</span>
+              <span className="text-yellow-400 font-medium">
+                Scanning Library...
+              </span>
               {scanStatus.progress !== undefined && (
                 <span className="ml-auto text-yellow-400 font-semibold">
                   {scanStatus.progress}%
@@ -275,35 +296,47 @@ const LibraryManagementTab: React.FC = () => {
               )}
             </div>
             <div className="w-full bg-gray-700 rounded-full h-3 mb-3">
-              <div 
-                className="bg-yellow-400 h-3 rounded-full transition-all duration-500 ease-in-out" 
-                style={{ 
+              <div
+                className="bg-yellow-400 h-3 rounded-full transition-all duration-500 ease-in-out"
+                style={{
                   width: `${scanStatus.progress || 0}%`,
-                  minWidth: scanStatus.progress && scanStatus.progress > 0 ? '8px' : '0'
+                  minWidth:
+                    scanStatus.progress && scanStatus.progress > 0
+                      ? '8px'
+                      : '0',
                 }}
               ></div>
             </div>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
               <div className="text-center">
-                <div className="text-gray-300 font-medium">{scanStatus.filesScanned}</div>
+                <div className="text-gray-300 font-medium">
+                  {scanStatus.filesScanned}
+                </div>
                 <div className="text-gray-400 text-xs">Scanned</div>
               </div>
               <div className="text-center">
-                <div className="text-green-400 font-medium">{scanStatus.filesAdded}</div>
+                <div className="text-green-400 font-medium">
+                  {scanStatus.filesAdded}
+                </div>
                 <div className="text-gray-400 text-xs">Added</div>
               </div>
               <div className="text-center">
-                <div className="text-blue-400 font-medium">{scanStatus.filesUpdated}</div>
+                <div className="text-blue-400 font-medium">
+                  {scanStatus.filesUpdated}
+                </div>
                 <div className="text-gray-400 text-xs">Updated</div>
               </div>
               <div className="text-center">
-                <div className="text-red-400 font-medium">{scanStatus.errorsCount}</div>
+                <div className="text-red-400 font-medium">
+                  {scanStatus.errorsCount}
+                </div>
                 <div className="text-gray-400 text-xs">Errors</div>
               </div>
             </div>
             {scanStatus.totalFiles && (
               <p className="text-gray-400 text-xs mt-2 text-center">
-                Processing {scanStatus.filesScanned} of {scanStatus.totalFiles} files
+                Processing {scanStatus.filesScanned} of {scanStatus.totalFiles}{' '}
+                files
               </p>
             )}
             {scanStatus.currentFile && (
@@ -317,7 +350,10 @@ const LibraryManagementTab: React.FC = () => {
         {/* Paths list */}
         <div className="space-y-2">
           {libraryPaths.map((path) => (
-            <div key={path.id} className="flex items-center justify-between p-3 bg-gray-700 rounded-lg">
+            <div
+              key={path.id}
+              className="flex items-center justify-between p-3 bg-gray-700 rounded-lg"
+            >
               <div className="flex items-center flex-1">
                 <input
                   type="checkbox"
@@ -326,10 +362,12 @@ const LibraryManagementTab: React.FC = () => {
                   className="w-4 h-4 text-primary bg-gray-600 border-gray-500 rounded focus:ring-primary focus:ring-2"
                 />
                 <div className="ml-3 flex-1">
-                  <p className={clsx(
-                    'font-medium',
-                    path.is_active ? 'text-white' : 'text-gray-400'
-                  )}>
+                  <p
+                    className={clsx(
+                      'font-medium',
+                      path.is_active ? 'text-white' : 'text-gray-400',
+                    )}
+                  >
                     {path.path}
                   </p>
                   {path.updated_at && (
@@ -340,6 +378,7 @@ const LibraryManagementTab: React.FC = () => {
                 </div>
               </div>
               <button
+                type="button"
                 onClick={() => handleRemovePath(path.id)}
                 className="p-2 text-gray-400 hover:text-red-400 transition-colors"
                 title="Remove path"
@@ -387,23 +426,38 @@ const LibraryManagementTab: React.FC = () => {
             <table className="w-full">
               <thead>
                 <tr className="border-b border-gray-700">
-                  <th className="text-left py-3 px-4 font-medium text-gray-300">Title</th>
-                  <th className="text-left py-3 px-4 font-medium text-gray-300">Artist</th>
-                  <th className="text-left py-3 px-4 font-medium text-gray-300">Album</th>
-                  <th className="text-left py-3 px-4 font-medium text-gray-300">Duration</th>
-                  <th className="text-left py-3 px-4 font-medium text-gray-300">Status</th>
-                  <th className="text-right py-3 px-4 font-medium text-gray-300">Actions</th>
+                  <th className="text-left py-3 px-4 font-medium text-gray-300">
+                    Title
+                  </th>
+                  <th className="text-left py-3 px-4 font-medium text-gray-300">
+                    Artist
+                  </th>
+                  <th className="text-left py-3 px-4 font-medium text-gray-300">
+                    Album
+                  </th>
+                  <th className="text-left py-3 px-4 font-medium text-gray-300">
+                    Duration
+                  </th>
+                  <th className="text-left py-3 px-4 font-medium text-gray-300">
+                    Status
+                  </th>
+                  <th className="text-right py-3 px-4 font-medium text-gray-300">
+                    Actions
+                  </th>
                 </tr>
               </thead>
               <tbody>
                 {songs.map((song) => (
-                  <tr key={song.id} className="border-b border-gray-700/50 hover:bg-gray-700/30">
+                  <tr
+                    key={song.id}
+                    className="border-b border-gray-700/50 hover:bg-gray-700/30"
+                  >
                     <td className="py-3 px-4">
                       <div className="flex items-center">
                         {song.artwork_path ? (
-                          <img 
-                            src={song.artwork_path} 
-                            alt="" 
+                          <img
+                            src={song.artwork_path}
+                            alt=""
                             className="w-10 h-10 rounded object-cover mr-3"
                           />
                         ) : (
@@ -414,24 +468,35 @@ const LibraryManagementTab: React.FC = () => {
                         <div>
                           <p className="text-white font-medium">{song.title}</p>
                           {song.genre && (
-                            <p className="text-gray-400 text-sm">{song.genre}</p>
+                            <p className="text-gray-400 text-sm">
+                              {song.genre}
+                            </p>
                           )}
                         </div>
                       </div>
                     </td>
-                    <td className="py-3 px-4 text-gray-300">{song.artist_name || 'Unknown'}</td>
-                    <td className="py-3 px-4 text-gray-300">{song.album_title || 'Unknown'}</td>
                     <td className="py-3 px-4 text-gray-300">
-                      {song.duration ? `${Math.floor(song.duration / 60)}:${String(song.duration % 60).padStart(2, '0')}` : 'N/A'}
+                      {song.artist_name || 'Unknown'}
+                    </td>
+                    <td className="py-3 px-4 text-gray-300">
+                      {song.album_title || 'Unknown'}
+                    </td>
+                    <td className="py-3 px-4 text-gray-300">
+                      {song.duration
+                        ? `${Math.floor(song.duration / 60)}:${String(song.duration % 60).padStart(2, '0')}`
+                        : 'N/A'}
                     </td>
                     <td className="py-3 px-4">
                       <div className="flex items-center">
                         <CheckCircleIcon className="w-4 h-4 text-green-400 mr-1" />
-                        <span className="text-green-400 text-sm">Available</span>
+                        <span className="text-green-400 text-sm">
+                          Available
+                        </span>
                       </div>
                     </td>
                     <td className="py-3 px-4 text-right">
                       <button
+                        type="button"
                         onClick={() => handleDeleteSong(song.id!)}
                         className="p-1 text-gray-400 hover:text-red-400 transition-colors"
                         title="Remove from library"
@@ -443,22 +508,25 @@ const LibraryManagementTab: React.FC = () => {
                 ))}
               </tbody>
             </table>
-            
+
             {/* Pagination */}
             {totalPages > 1 && (
               <div className="mt-6 flex items-center justify-between">
                 <div className="text-sm text-gray-400">
-                  Showing {startIndex.toLocaleString()} to {endIndex.toLocaleString()} of {totalSongs.toLocaleString()} songs
+                  Showing {startIndex.toLocaleString()} to{' '}
+                  {endIndex.toLocaleString()} of {totalSongs.toLocaleString()}{' '}
+                  songs
                 </div>
                 <div className="flex items-center space-x-2">
                   <button
+                    type="button"
                     onClick={() => handlePageChange(currentPage - 1)}
                     disabled={currentPage === 1 || loadingSongs}
                     className="px-3 py-2 bg-gray-700 text-white rounded-lg hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                   >
                     Previous
                   </button>
-                  
+
                   <div className="flex space-x-1">
                     {/* Show page numbers */}
                     {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
@@ -467,26 +535,28 @@ const LibraryManagementTab: React.FC = () => {
                       return (
                         <button
                           key={pageNumber}
+                          type="button"
                           onClick={() => handlePageChange(pageNumber)}
                           disabled={loadingSongs}
                           className={clsx(
                             'px-3 py-2 rounded-lg transition-colors',
                             pageNumber === currentPage
                               ? 'bg-primary text-white'
-                              : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+                              : 'bg-gray-700 text-gray-300 hover:bg-gray-600',
                           )}
                         >
                           {pageNumber}
                         </button>
                       );
                     })}
-                    
+
                     {totalPages > currentPage + 2 && (
                       <span className="px-2 py-2 text-gray-400">...</span>
                     )}
-                    
+
                     {totalPages > currentPage + 2 && (
                       <button
+                        type="button"
                         onClick={() => handlePageChange(totalPages)}
                         disabled={loadingSongs}
                         className="px-3 py-2 bg-gray-700 text-gray-300 rounded-lg hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
@@ -495,8 +565,9 @@ const LibraryManagementTab: React.FC = () => {
                       </button>
                     )}
                   </div>
-                  
+
                   <button
+                    type="button"
                     onClick={() => handlePageChange(currentPage + 1)}
                     disabled={currentPage === totalPages || loadingSongs}
                     className="px-3 py-2 bg-gray-700 text-white rounded-lg hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
@@ -515,12 +586,16 @@ const LibraryManagementTab: React.FC = () => {
                 <span className="ml-3 text-gray-400">Loading songs...</span>
               </div>
             ) : searchQuery ? (
-              <p className="text-gray-400">No songs found matching "{searchQuery}"</p>
+              <p className="text-gray-400">
+                No songs found matching "{searchQuery}"
+              </p>
             ) : (
               <div>
                 <MusicalNoteIcon className="w-12 h-12 text-gray-600 mx-auto mb-4" />
                 <p className="text-gray-400 mb-2">No songs in library</p>
-                <p className="text-gray-500 text-sm">Add library paths and scan to populate your music collection</p>
+                <p className="text-gray-500 text-sm">
+                  Add library paths and scan to populate your music collection
+                </p>
               </div>
             )}
           </div>

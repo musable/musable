@@ -301,3 +301,53 @@ INSERT OR IGNORE INTO settings (key, value, description) VALUES
 ('max_file_size', '104857600', 'Maximum file size for uploads (100MB)'),
 ('supported_formats', '["mp3","flac","wav","m4a","aac","ogg"]', 'Supported audio formats'),
 ('youtube_integration', 'true', 'Enable YouTube Music integration');
+
+-- Generic "tops" cache and items tables for provider-agnostic rankings
+CREATE TABLE IF NOT EXISTS top_cache (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    subject_type VARCHAR(32) NOT NULL,
+    subject_id INTEGER,
+    subject_value VARCHAR(255),
+    item_type VARCHAR(32) NOT NULL,
+    provider VARCHAR(50) NOT NULL,
+    scope_key VARCHAR(100) NOT NULL,
+    scanned_at DATETIME NOT NULL,
+    expires_at DATETIME NOT NULL,
+    status VARCHAR(20) NOT NULL,
+    error_message TEXT,
+    UNIQUE(subject_type, subject_id, subject_value, item_type, provider, scope_key)
+);
+
+CREATE TABLE IF NOT EXISTS top_items (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    cache_id INTEGER NOT NULL,
+    subject_type VARCHAR(32) NOT NULL,
+    subject_id INTEGER,
+    subject_value VARCHAR(255),
+    item_type VARCHAR(32) NOT NULL,
+    rank INTEGER NOT NULL,
+    title VARCHAR(255),
+    external_id VARCHAR(255),
+    playcount INTEGER,
+    listeners INTEGER,
+    score REAL,
+    url VARCHAR(1000),
+    duration INTEGER,
+    matched_song_id INTEGER,
+    matched_artist_id INTEGER,
+    matched_album_id INTEGER,
+    match_confidence REAL,
+    match_method VARCHAR(50),
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (cache_id) REFERENCES top_cache(id) ON DELETE CASCADE,
+    FOREIGN KEY (matched_song_id) REFERENCES songs(id) ON DELETE SET NULL,
+    FOREIGN KEY (matched_artist_id) REFERENCES artists(id) ON DELETE SET NULL,
+    FOREIGN KEY (matched_album_id) REFERENCES albums(id) ON DELETE SET NULL,
+    UNIQUE(cache_id, rank)
+);
+
+CREATE INDEX IF NOT EXISTS idx_top_cache_lookup
+    ON top_cache(subject_type, subject_id, subject_value, item_type, provider, scope_key);
+
+CREATE INDEX IF NOT EXISTS idx_top_items_cache_rank
+    ON top_items(cache_id, rank);

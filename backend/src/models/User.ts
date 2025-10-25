@@ -1,5 +1,5 @@
-import Database from '../config/database';
 import bcrypt from 'bcryptjs';
+import Database from '../config/database.js';
 
 export interface User {
   id: number;
@@ -28,7 +28,7 @@ export class UserModel {
   async findById(id: number): Promise<UserWithoutPassword | null> {
     const user = await this.db.get<User>(
       'SELECT id, username, email, profile_picture, is_admin, created_at, updated_at, last_login FROM users WHERE id = ?',
-      [id]
+      [id],
     );
     if (user) {
       // Convert SQLite integer to boolean
@@ -40,7 +40,7 @@ export class UserModel {
   async findByEmail(email: string): Promise<User | null> {
     const user = await this.db.get<User>(
       'SELECT * FROM users WHERE email = ?',
-      [email]
+      [email],
     );
     if (user) {
       // Convert SQLite integer to boolean
@@ -50,10 +50,9 @@ export class UserModel {
   }
 
   async findByUsername(username: string): Promise<User | null> {
-    return await this.db.get<User>(
-      'SELECT * FROM users WHERE username = ?',
-      [username]
-    );
+    return await this.db.get<User>('SELECT * FROM users WHERE username = ?', [
+      username,
+    ]);
   }
 
   async create(userData: CreateUserData): Promise<UserWithoutPassword> {
@@ -61,9 +60,14 @@ export class UserModel {
     const password_hash = await bcrypt.hash(userData.password, saltRounds);
 
     const result = await this.db.run(
-      `INSERT INTO users (username, email, password_hash, is_admin) 
+      `INSERT INTO users (username, email, password_hash, is_admin)
        VALUES (?, ?, ?, ?)`,
-      [userData.username, userData.email, password_hash, userData.is_admin || false]
+      [
+        userData.username,
+        userData.email,
+        password_hash,
+        userData.is_admin || false,
+      ],
     );
 
     const user = await this.findById(result.lastID!);
@@ -81,7 +85,7 @@ export class UserModel {
   async updateLastLogin(id: number): Promise<void> {
     await this.db.run(
       'UPDATE users SET last_login = CURRENT_TIMESTAMP WHERE id = ?',
-      [id]
+      [id],
     );
   }
 
@@ -91,35 +95,38 @@ export class UserModel {
 
     await this.db.run(
       'UPDATE users SET password_hash = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?',
-      [password_hash, id]
+      [password_hash, id],
     );
   }
 
-  async updateProfilePicture(id: number, profilePicture: string | null): Promise<void> {
+  async updateProfilePicture(
+    id: number,
+    profilePicture: string | null,
+  ): Promise<void> {
     await this.db.run(
       'UPDATE users SET profile_picture = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?',
-      [profilePicture, id]
+      [profilePicture, id],
     );
   }
 
   async makeAdmin(id: number): Promise<void> {
     await this.db.run(
       'UPDATE users SET is_admin = 1, updated_at = CURRENT_TIMESTAMP WHERE id = ?',
-      [id]
+      [id],
     );
   }
 
   async removeAdmin(id: number): Promise<void> {
     await this.db.run(
       'UPDATE users SET is_admin = 0, updated_at = CURRENT_TIMESTAMP WHERE id = ?',
-      [id]
+      [id],
     );
   }
 
   async getAllUsers(): Promise<UserWithoutPassword[]> {
     return await this.db.query<UserWithoutPassword>(
-      `SELECT id, username, email, profile_picture, is_admin, created_at, updated_at, last_login 
-       FROM users ORDER BY created_at DESC`
+      `SELECT id, username, email, profile_picture, is_admin, created_at, updated_at, last_login
+       FROM users ORDER BY created_at DESC`,
     );
   }
 
@@ -130,14 +137,14 @@ export class UserModel {
   async userExists(email: string, username: string): Promise<boolean> {
     const user = await this.db.get<{ count: number }>(
       'SELECT COUNT(*) as count FROM users WHERE email = ? OR username = ?',
-      [email, username]
+      [email, username],
     );
     return user!.count > 0;
   }
 
   async getAdminCount(): Promise<number> {
     const result = await this.db.get<{ count: number }>(
-      'SELECT COUNT(*) as count FROM users WHERE is_admin = 1'
+      'SELECT COUNT(*) as count FROM users WHERE is_admin = 1',
     );
     return result!.count;
   }
