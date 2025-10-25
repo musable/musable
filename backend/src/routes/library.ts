@@ -19,6 +19,11 @@ import {
   toggleAlbumFollow,
   unfollowAlbum,
 } from '../controllers/libraryController.js';
+import {
+  getArtistTopTracks,
+  getTops,
+  refreshArtistTopTracks,
+} from '../controllers/topController.js';
 import { authenticateToken, requireAdmin } from '../middleware/auth.js';
 
 const router = Router();
@@ -29,6 +34,13 @@ router.get('/songs/:id', getSong);
 
 router.get('/artists', getAllArtists);
 router.get('/artists/:id', getArtist);
+router.get('/artists/:id/top-tracks', getArtistTopTracks);
+router.post(
+  '/artists/:id/top-tracks/refresh',
+  authenticateToken,
+  refreshArtistTopTracks,
+);
+router.get('/tops', getTops);
 
 router.get('/albums', getAllAlbums);
 router.get('/albums/recent', getRecentAlbums);

@@ -3,7 +3,7 @@
 This document provides a comprehensive reference for all API endpoints in the Musable backend.
 
 ## Base URL
-- **Development**: `http://localhost:3001/api`  
+- **Development**: `http://localhost:3001/api`
 - **Production**: `https://musable.breadjs.nl/api`
 
 ## Authentication
@@ -69,13 +69,13 @@ Register a new user (requires valid invite token).
 ### GET `/auth/profile`
 Get current user profile information.
 
-**Auth**: Required  
+**Auth**: Required
 **Response**: User object
 
 ### PUT `/auth/password`
 Change user password.
 
-**Auth**: Required  
+**Auth**: Required
 **Request Body:**
 ```json
 {
@@ -100,11 +100,11 @@ Validate an invite token.
 ### GET `/library/songs`
 Get songs with optional filtering and pagination.
 
-**Auth**: Required  
+**Auth**: Required
 **Query Parameters:**
 - `search`: Filter by title, artist, or album
 - `artist`: Filter by artist ID
-- `album`: Filter by album ID  
+- `album`: Filter by album ID
 - `genre`: Filter by genre string
 - `limit`: Number of results (default: 50)
 - `offset`: Pagination offset (default: 0)
@@ -123,35 +123,35 @@ Get songs with optional filtering and pagination.
 ### GET `/library/songs/:id`
 Get a specific song by ID.
 
-**Auth**: Required  
+**Auth**: Required
 **Parameters:**
 - `id`: Song ID
 
 ### GET `/library/songs/random`
 Get random songs.
 
-**Auth**: Required  
+**Auth**: Required
 **Query Parameters:**
 - `limit`: Number of songs (default: 50, max: 100)
 
 ### GET `/library/artists`
 Get all artists with optional search.
 
-**Auth**: Required  
+**Auth**: Required
 **Query Parameters:**
 - `search`: Filter by artist name
 
 ### GET `/library/artists/:id`
 Get specific artist with their songs and albums.
 
-**Auth**: Required  
+**Auth**: Required
 **Parameters:**
 - `id`: Artist ID
 
 ### GET `/library/albums`
 Get albums with optional filtering.
 
-**Auth**: Required  
+**Auth**: Required
 **Query Parameters:**
 - `search`: Filter by album title
 - `artist`: Filter by artist ID
@@ -159,14 +159,14 @@ Get albums with optional filtering.
 ### GET `/library/albums/:id`
 Get specific album with its songs.
 
-**Auth**: Required  
+**Auth**: Required
 **Parameters:**
 - `id`: Album ID
 
 ### GET `/library/albums/recent`
 Get recently added albums.
 
-**Auth**: Required  
+**Auth**: Required
 **Query Parameters:**
 - `limit`: Number of albums (default: 20)
 
@@ -183,7 +183,7 @@ Get library statistics (total songs, artists, albums, etc.).
 ### POST `/library/scan`
 Start a library scan.
 
-**Auth**: Required (Admin only)  
+**Auth**: Required (Admin only)
 **Request Body:**
 ```json
 {
@@ -201,7 +201,7 @@ Get current scan status and history.
 ### POST `/playlists`
 Create a new playlist.
 
-**Auth**: Required  
+**Auth**: Required
 **Request Body:**
 ```json
 {
@@ -229,14 +229,14 @@ Get all playlists (admin only).
 ### GET `/playlists/:id`
 Get specific playlist with songs.
 
-**Auth**: Required  
+**Auth**: Required
 **Parameters:**
 - `id`: Playlist ID
 
 ### PUT `/playlists/:id`
 Update playlist information.
 
-**Auth**: Required (Owner or Admin)  
+**Auth**: Required (Owner or Admin)
 **Parameters:**
 - `id`: Playlist ID
 
@@ -244,7 +244,7 @@ Update playlist information.
 ```json
 {
   "name": "string",        // Optional
-  "description": "string", // Optional  
+  "description": "string", // Optional
   "isPublic": boolean      // Optional
 }
 ```
@@ -252,14 +252,14 @@ Update playlist information.
 ### DELETE `/playlists/:id`
 Delete a playlist.
 
-**Auth**: Required (Owner or Admin)  
+**Auth**: Required (Owner or Admin)
 **Parameters:**
 - `id`: Playlist ID
 
 ### POST `/playlists/:id/songs`
 Add song to playlist.
 
-**Auth**: Required (Owner or Admin)  
+**Auth**: Required (Owner or Admin)
 **Parameters:**
 - `id`: Playlist ID
 
@@ -273,7 +273,7 @@ Add song to playlist.
 ### DELETE `/playlists/:id/songs/:songId`
 Remove song from playlist.
 
-**Auth**: Required (Owner or Admin)  
+**Auth**: Required (Owner or Admin)
 **Parameters:**
 - `id`: Playlist ID
 - `songId`: Song ID
@@ -281,7 +281,7 @@ Remove song from playlist.
 ### PUT `/playlists/:id/songs/reorder`
 Reorder songs in playlist.
 
-**Auth**: Required (Owner or Admin)  
+**Auth**: Required (Owner or Admin)
 **Parameters:**
 - `id`: Playlist ID
 
@@ -295,7 +295,7 @@ Reorder songs in playlist.
 ### GET `/playlists/search`
 Search playlists by name.
 
-**Auth**: Required  
+**Auth**: Required
 **Query Parameters:**
 - `q`: Search query
 
@@ -304,7 +304,7 @@ Search playlists by name.
 ### POST `/history/track`
 Track a song play.
 
-**Auth**: Required  
+**Auth**: Required
 **Request Body:**
 ```json
 {
@@ -317,7 +317,7 @@ Track a song play.
 ### GET `/history`
 Get user's listening history.
 
-**Auth**: Required  
+**Auth**: Required
 **Query Parameters:**
 - `limit`: Number of entries (default: 50)
 - `offset`: Pagination offset
@@ -325,14 +325,14 @@ Get user's listening history.
 ### GET `/history/recent`
 Get recently played songs.
 
-**Auth**: Required  
+**Auth**: Required
 **Query Parameters:**
 - `limit`: Number of songs (default: 20)
 
 ### GET `/history/most-played`
 Get most played songs.
 
-**Auth**: Required  
+**Auth**: Required
 **Query Parameters:**
 - `limit`: Number of songs (default: 20)
 
@@ -438,7 +438,7 @@ Get user's followed playlists.
 ### GET `/youtube/search`
 Search for images using YouTube Data API.
 
-**Auth**: Required  
+**Auth**: Required
 **Query Parameters:**
 - `q`: Search query (required)
 - `limit`: Number of results (default: 20, max: 50)
@@ -459,7 +459,7 @@ Search for images using YouTube Data API.
 ### GET `/youtube/album-artwork`
 Search for album-specific artwork.
 
-**Auth**: Required  
+**Auth**: Required
 **Query Parameters:**
 - `artist`: Artist name (required)
 - `album`: Album name (required)
@@ -467,7 +467,7 @@ Search for album-specific artwork.
 ### GET `/youtube/thumbnail/:videoId`
 Get high-quality thumbnail URL for YouTube video.
 
-**Auth**: Required  
+**Auth**: Required
 **Parameters:**
 - `videoId`: YouTube video ID
 
@@ -552,7 +552,7 @@ Create a share token for a song (alternative endpoint).
 ### GET `/stream/:songId`
 Stream audio file.
 
-**Auth**: Required  
+**Auth**: Required
 **Parameters:**
 - `songId`: Song ID
 
@@ -575,28 +575,28 @@ Get all users.
 ### PUT `/admin/users/:id`
 Update user information.
 
-**Auth**: Required (Admin)  
+**Auth**: Required (Admin)
 **Parameters:**
 - `id`: User ID
 
 ### DELETE `/admin/users/:id`
 Delete a user.
 
-**Auth**: Required (Admin)  
+**Auth**: Required (Admin)
 **Parameters:**
 - `id`: User ID
 
 ### GET `/admin/users/:id/activity`
 Get user activity log.
 
-**Auth**: Required (Admin)  
+**Auth**: Required (Admin)
 **Parameters:**
 - `id`: User ID
 
 ### POST `/admin/invites`
 Create invite token.
 
-**Auth**: Required (Admin)  
+**Auth**: Required (Admin)
 **Request Body:**
 ```json
 {
@@ -612,7 +612,7 @@ Get all invite tokens.
 ### DELETE `/admin/invites/:id`
 Revoke invite token.
 
-**Auth**: Required (Admin)  
+**Auth**: Required (Admin)
 **Parameters:**
 - `id`: Invite ID
 
@@ -624,7 +624,7 @@ Clean up expired invites.
 ### PUT `/admin/songs/:id`
 Update song metadata and artwork.
 
-**Auth**: Required (Admin)  
+**Auth**: Required (Admin)
 **Parameters:**
 - `id`: Song ID
 
@@ -639,7 +639,7 @@ Update song metadata and artwork.
 ### DELETE `/admin/songs/:id`
 Delete a song.
 
-**Auth**: Required (Admin)  
+**Auth**: Required (Admin)
 **Parameters:**
 - `id`: Song ID
 
@@ -651,7 +651,7 @@ Get library scan paths.
 ### POST `/admin/library/paths`
 Add library scan path.
 
-**Auth**: Required (Admin)  
+**Auth**: Required (Admin)
 **Request Body:**
 ```json
 {
@@ -662,7 +662,7 @@ Add library scan path.
 ### PUT `/admin/library/paths/:id`
 Update library path.
 
-**Auth**: Required (Admin)  
+**Auth**: Required (Admin)
 **Parameters:**
 - `id`: Path ID
 
@@ -677,14 +677,14 @@ Update library path.
 ### DELETE `/admin/library/paths/:id`
 Delete library path.
 
-**Auth**: Required (Admin)  
+**Auth**: Required (Admin)
 **Parameters:**
 - `id`: Path ID
 
 ### GET `/admin/history`
 Get all user listening history.
 
-**Auth**: Required (Admin)  
+**Auth**: Required (Admin)
 **Query Parameters:**
 - `limit`: Number of entries
 - `offset`: Pagination offset
@@ -693,7 +693,7 @@ Get all user listening history.
 ### GET `/admin/stats/listening`
 Get listening statistics.
 
-**Auth**: Required (Admin)  
+**Auth**: Required (Admin)
 **Query Parameters:**
 - `user`: Filter by user ID (optional)
 
@@ -705,14 +705,14 @@ Get all system settings.
 ### GET `/admin/settings/:key`
 Get specific system setting.
 
-**Auth**: Required (Admin)  
+**Auth**: Required (Admin)
 **Parameters:**
 - `key`: Setting key
 
 ### PUT `/admin/settings/:key`
 Update system setting.
 
-**Auth**: Required (Admin)  
+**Auth**: Required (Admin)
 **Parameters:**
 - `key`: Setting key
 
@@ -728,7 +728,7 @@ Update system setting.
 ### GET `/rooms/public`
 Get all public music rooms with live status and currently playing songs.
 
-**Auth**: Required  
+**Auth**: Required
 **Query Parameters:**
 - `page`: Page number (default: 1)
 - `limit`: Number of results (default: 20, max: 50)
@@ -743,7 +743,7 @@ Get all public music rooms with live status and currently playing songs.
       "name": "string",
       "description": "string",
       "code": "string",
-      "host_username": "string", 
+      "host_username": "string",
       "participant_count": number,
       "max_listeners": number,
       "is_playing": boolean,
@@ -774,7 +774,7 @@ Get current user's rooms (created and joined).
 ### GET `/rooms/:id`
 Get room details with participants and queue.
 
-**Auth**: Required  
+**Auth**: Required
 **Parameters:**
 - `id`: Room ID
 
@@ -817,7 +817,7 @@ Find room by 6-character code for discovery.
 ### POST `/rooms`
 Create a new music room.
 
-**Auth**: Required  
+**Auth**: Required
 **Request Body:**
 ```json
 {
@@ -831,7 +831,7 @@ Create a new music room.
 ### POST `/rooms/join`
 Join a room by code.
 
-**Auth**: Required  
+**Auth**: Required
 **Request Body:**
 ```json
 {
@@ -854,14 +854,14 @@ Join a room by code.
 ### POST `/rooms/:id/leave`
 Leave a room.
 
-**Auth**: Required  
+**Auth**: Required
 **Parameters:**
 - `id`: Room ID
 
 ### POST `/rooms/:id/queue`
 Add song to room queue.
 
-**Auth**: Required (Must be room participant)  
+**Auth**: Required (Must be room participant)
 **Parameters:**
 - `id`: Room ID
 
@@ -875,7 +875,7 @@ Add song to room queue.
 ### DELETE `/rooms/:id/queue/:queueId`
 Remove song from room queue.
 
-**Auth**: Required (Must be room participant)  
+**Auth**: Required (Must be room participant)
 **Parameters:**
 - `id`: Room ID
 - `queueId`: Queue item ID
@@ -884,7 +884,7 @@ Remove song from room queue.
 ### PATCH `/rooms/:id/participants/:userId/role`
 Change user role in room (host only).
 
-**Auth**: Required (Host only)  
+**Auth**: Required (Host only)
 **Parameters:**
 - `id`: Room ID
 - `userId`: User ID to change
@@ -899,7 +899,7 @@ Change user role in room (host only).
 ### DELETE `/rooms/:id`
 Delete a room (host or admin only).
 
-**Auth**: Required (Host or Admin)  
+**Auth**: Required (Host or Admin)
 **Parameters:**
 - `id`: Room ID
 
@@ -907,7 +907,7 @@ Delete a room (host or admin only).
 
 Music rooms use WebSocket connections for real-time synchronization:
 
-**Connection**: `ws://localhost:3001/socket.io/`  
+**Connection**: `ws://localhost:3001/socket.io/`
 **Auth**: JWT token in connection auth
 
 ### Client Events
@@ -1019,7 +1019,7 @@ API endpoints may implement rate limiting. When exceeded, you'll receive a 429 s
 {
   "id": "string",
   "url": "string",
-  "thumbnail": "string", 
+  "thumbnail": "string",
   "title": "string",
   "source": "string",
   "width": number,
@@ -1028,3 +1028,42 @@ API endpoints may implement rate limiting. When exceeded, you'll receive a 429 s
   "channelTitle": "string"
 }
 ```
+
+# Top Aggregations API
+
+## GET /library/artists/:id/top-tracks
+Query params:
+- scope: string (default: all-time)
+- limit: number (default: 20)
+- forceRefresh: 'true' | 'false' (default: false)
+
+Response:
+```
+{
+  success: true,
+  data: {
+    provider: 'lastfm',
+    subject: { type: 'artist', id: number },
+    itemType: 'track',
+    scope: string,
+    scannedAt: string,
+    expiresAt: string,
+    tracks: [
+      {
+        id?: number, // matched_song_id may be used to hydrate client
+        title?: string,
+        playcount?: number,
+        url?: string
+      }
+    ]
+  }
+}
+```
+
+## POST /library/artists/:id/top-tracks/refresh
+Auth required.
+Query params:
+- scope: string (default: all-time)
+- limit: number (default: 20)
+
+Triggers a refresh and returns the same shape as GET.
